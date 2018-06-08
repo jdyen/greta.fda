@@ -101,7 +101,7 @@ greta_fda.formula <- function (formula, data,
   }
   if (length(random_vars)) {
     z_tmp <- mget(random_vars, envir = as.environment(data), inherits = TRUE)
-    z_tmp <- lapply(z_tmp, function(x) as.integer(as.factor(x)))
+    z_tmp <- lapply(z_tmp, function(x) as.factor(x))
   }
   
   # create model matrix
@@ -213,7 +213,7 @@ greta_fda.default <- function (y, x, z = NULL,
         }
       }
     }
-    z <- apply(z, 2, function(x) as.integer(as.factor(z)))
+    z <- apply(z, 2, function(x) as.integer(as.factor(x)))
   }
 
   # unpack greta_settings
