@@ -101,7 +101,7 @@ greta_fda.formula <- function (formula, data,
   }
   if (length(random_vars)) {
     z_tmp <- mget(random_vars, envir = as.environment(data), inherits = TRUE)
-    z_tmp <- lapply(z_tmp, function(x) as.factor(x))
+    z_tmp <- lapply(z_tmp, function(x) as.integer(as.factor(x)))
   }
   
   # create model matrix
@@ -454,22 +454,32 @@ build_greta_fda <- function (y, x, z,
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
   sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
   if (!is.null(z)) {
-    sigma_gamma <- greta::uniform(min = 0.0, max = 5.0, dim = nt)
+    sigma_gamma <- greta::uniform(min = 0.0, max = 5.0, dim = c(nt, np))
   }
   
   # setup parameters
   alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
+  
+  ### REALLY WANT TO VECTORISE THIS
+  
   if (!is.null(z)) {
-    gamma <- greta::normal(mean = greta_array(0.0, dim = c(nt, np)),
-                           sd = greta_array(rep(sigma_gamma, times = np), dim = c(nt, np)),
-                           dim = c(nt, np))
+    gamma <- vector('list', length = nt)
+    for (rand in seq_len(nt)) {
+      ng_temp <- ngroup[rand]
+      gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ng_temp, np)),
+                                     sd = greta::greta_array(rep(sigma_gamma[rand, ], ng_temp),
+                                                             dim = c(ng_temp, np)),
+                                     dim = c(ng_temp, np))
+    }
   }
-
+  
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
-    mu <- mu + (z %*% (gamma %*% spline_basis))
+    for (rand in seq_len(nt)) {
+      mu <- mu + (gamma[[rand]][z, ] %*% spline_basis)
+    }
   }
   
   # add error structure
@@ -499,7 +509,8 @@ build_greta_fda <- function (y, x, z,
   
   # define model
   if (!is.null(z)) {
-    greta_model <- greta::model(mu, alpha, beta, gamma, ...)
+    gamma_vec <- do.call("c", gamma)
+    greta_model <- greta::model(mu, alpha, beta, gamma_vec, ...)
   } else {
     greta_model <- greta::model(mu, alpha, beta, ...)
   }
