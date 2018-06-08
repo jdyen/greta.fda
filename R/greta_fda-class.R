@@ -96,13 +96,15 @@ greta_fda.formula <- function (formula, data,
   
   # create model matrix
   if (length(var_names[-random])) {
-    x <- model.matrix(paste0(" ~ ", paste(var_names[-random], collapse = " + ")), data = x_tmp)
+    x <- model.matrix(as.formula(paste0(" ~ ", paste(var_names[-random], collapse = " + "))), data = x_tmp)
   } else {
     x <- matrix(1, nrow = length(y), ncol = 1)
     colnames(x) <- '(Intercept)'
   }
   if (length(random)) {
-    z <- model.matrix(paste0(" ~ ", paste(var_names[random], collapse = " + ")), data = z_tmp)
+    z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(var_names[random], collapse = " + "))), data = z_tmp)
+  } else {
+    z <- NULL
   }
   
   # fit model
