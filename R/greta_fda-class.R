@@ -461,16 +461,12 @@ build_greta_fda <- function (y, x, z,
   alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
   
-  ### REALLY WANT TO VECTORISE THIS
-  
   if (!is.null(z)) {
-    gamma <- vector('list', length = nt)
     for (rand in seq_len(nt)) {
-      ng_temp <- ngroup[rand]
-      gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ng_temp, np)),
-                                     sd = greta::greta_array(rep(sigma_gamma[rand, ], ng_temp),
-                                                             dim = c(ng_temp, np)),
-                                     dim = c(ng_temp, np))
+      gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
+                                     sd = greta::greta_array(rep(sigma_gamma[rand, ], ngroup[rand]),
+                                                             dim = c(ngroup[rand], np)),
+                                     dim = c(ngroup[rand], np))
     }
   }
   
@@ -509,10 +505,13 @@ build_greta_fda <- function (y, x, z,
   
   # define model
   if (!is.null(z)) {
-    gamma_vec <- do.call("c", gamma)
-    greta_model <- greta::model(mu, alpha, beta, gamma_vec, ...)
+    greta_model <- greta::model(mu, alpha, beta,
+                                sigma_gamma, sigma_main, sigma_bins,
+                                ...)
   } else {
-    greta_model <- greta::model(mu, alpha, beta, ...)
+    greta_model <- greta::model(mu, alpha, beta,
+                                sigma_main, sigma_bins,
+                                ...)
   }
 
   # return model
