@@ -7,7 +7,7 @@ For more details on greta, see the [greta website](https://greta-dev.github.io/g
 You can install the package directly from GitHub using the devtools package:
 
 ``` r
-devtools::install_github("jdyen/greta.fda")
+devtools::install_github('jdyen/greta.fda')
 ```
 
 Please leave feedback, bug reports or feature requests at the GitHub [issues page](https://github.com/jdyen/greta.fda/issues). 
