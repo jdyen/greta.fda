@@ -462,6 +462,7 @@ build_greta_fda <- function (y, x, z,
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
   
   if (!is.null(z)) {
+    gamma <- vector('list', length = nt)
     for (rand in seq_len(nt)) {
       gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
                                      sd = greta::greta_array(rep(sigma_gamma[rand, ], ngroup[rand]),
