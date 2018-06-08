@@ -84,25 +84,34 @@ greta_fda.formula <- function (formula, data,
   terms <- terms(formula)
   random <- (grep("\\|", attributes(terms)$term.labels))
   var_names <- all.vars(delete.response(terms))
+  
+  # use correct var_names when random is missing
+  if (length(random)) {
+    fixed_vars <- var_names[-random]
+    random_vars <- var_names[random]
+  } else {
+    fixed_vars <- var_names
+    random_vars <- NULL
+  }
 
   # create x, y, z objects to pass to default method
   y <- get(response, envir = as.environment(data), inherits = TRUE)
-  if (length(var_names[-random])) {
-    x_tmp <- mget(var_names[-random], envir = as.environment(data), inherits = TRUE)
+  if (length(fixed_vars)) {
+    x_tmp <- mget(fixed_vars, envir = as.environment(data), inherits = TRUE)
   }
-  if (length(random)) {
-    z_tmp <- mget(var_names[random], envir = as.environment(data), inherits = TRUE)
+  if (length(random_vars)) {
+    z_tmp <- mget(random_vars, envir = as.environment(data), inherits = TRUE)
   }
   
   # create model matrix
-  if (length(var_names[-random])) {
-    x <- model.matrix(as.formula(paste0(" ~ ", paste(var_names[-random], collapse = " + "))), data = x_tmp)
+  if (length(fixed_vars)) {
+    x <- model.matrix(as.formula(paste0(" ~ ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
   } else {
     x <- matrix(1, nrow = length(y), ncol = 1)
     colnames(x) <- '(Intercept)'
   }
-  if (length(random)) {
-    z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(var_names[random], collapse = " + "))), data = z_tmp)
+  if (length(random_vars)) {
+    z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(random_vars, collapse = " + "))), data = z_tmp)
   } else {
     z <- NULL
   }
