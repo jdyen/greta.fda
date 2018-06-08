@@ -24,6 +24,7 @@
 #' 
 #' @import greta
 #' @importFrom splines bs
+#' @importFrom stats terms.formula delete.response
 #' 
 #' @examples
 #' 
@@ -70,7 +71,7 @@ greta_fda <- function (y, ...) {
 #' }
 
 greta_fda.formula <- function (formula, data,
-                               family = "gaussian",
+                               family = 'gaussian',
                                bins = NULL,
                                greta_settings = list(),
                                spline_settings = list(),
@@ -79,13 +80,20 @@ greta_fda.formula <- function (formula, data,
                                ...) {
   
   # parse formula
-  
-  
-  # create x, y, z objects to pass to default method
-  y <- NULL
-  x <- NULL
-  z <- NULL
+  response <- all.vars(formula)[1] 
+  terms <- terms(formula)
+  random <- (grep("\\|", attributes(terms)$term.labels))
+  var_names <- all.vars(delete.response(terms))
 
+  # create x, y, z objects to pass to default method
+  y <- get(response, envir = as.environment(data), inherits = TRUE)
+  x_tmp <- mget(var_names[-random], envir = as.environment(data), inherits = TRUE)
+  z_tmp <- mget(var_names[random], envir = as.environment(data), inherits = TRUE)
+  
+  # create model matrix
+  x <- model.frame(paste0(" ~ ", paste(var_names[-random], collapse = " + ")), data = x_tmp)
+  z <- model.frame(paste0(" ~ ", paste(var_names[random], collapse = " + ")), data = z_tmp)
+  
   # fit model
   model <- greta_fda.default(y = y, x = x, z = z,
                              family,
@@ -95,6 +103,9 @@ greta_fda.formula <- function (formula, data,
                              priors = priors,
                              errors,
                              ...)
+  
+  # add formula to fitted model
+  model$formula <- formula
   
   # return fitted model
   model
@@ -189,7 +200,7 @@ greta_fda.default <- function (y, x, z = NULL,
   greta_set[names(greta_settings)] <- greta_settings
   
   # unpack spline settings
-  spline_set <- list(basis = bs,
+  spline_set <- list(basis = "bs",
                      df = 10,
                      degree = 3)
   spline_set[names(spline_settings)] <- spline_settings
@@ -305,12 +316,13 @@ build_greta_fda <- function (y, x, z,
   np <- spline_settings$df
 
   # create spline basis
-  spline_basis <- spline_settings$basis(bins,
-                                        df = np,
-                                        degree = splines_settings$degree,
-                                        intercept = FALSE,
-                                        Boundary.knots = boundary_knots)
-
+  spline_basis <- get(spline_settings$basis)(bins,
+                                             df = np,
+                                             degree = spline_settings$degree,
+                                             intercept = FALSE,
+                                             Boundary.knots = boundary_knots)
+  spline_basis <- t(spline_basis)
+  
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
   sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
@@ -319,21 +331,18 @@ build_greta_fda <- function (y, x, z,
   }
   
   # setup parameters
-  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = np)
+  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
   if (!is.null(z)) {
-    gamma <- greta::normal(mean = rep(0.0, times = (nt * np)),
-                           sd = rep(sigma_gamma, times = np),
+    gamma <- greta::normal(mean = greta_array(0.0, dim = c(nt, np)),
+                           sd = greta_array(rep(sigma_gamma, times = np), dim = c(nt, np)),
                            dim = c(nt, np))
   }
 
   # define linear predictor
-  mu <- greta::greta_array(0, dim = c(n, nj))
-  for (i in seq_len(n)) {
-    mu[i, ] <- sweep((x %*% (beta %*% spline_basis)), 2, (alpha %*% spline_basis), '+')
-    if (!is.null(z)) {
-      mu[i, ] <- mu[i, ] + (z %*% (gamma %*% spline_basis))
-    }
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
+  if (!is.null(z)) {
+    mu <- mu + (z %*% (gamma %*% spline_basis))
   }
   
   # add error structure
@@ -351,20 +360,18 @@ build_greta_fda <- function (y, x, z,
   mu <- sweep(mu, 2, bin_errors, '+')
   
   # setup likelihood
-  mu_vec <- do.call('c', mu)
-  y_vec <- c(y)
   if (family == 'gaussian') {
-    distribution(y_vec) <- greta::normal(mean = mu_vec, sd = sigma_main)
+    distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
   } else {
     if (family == 'poisson') {
-      distribution(y_vec) <- greta::poisson(mean = exp(mu_vec))
+      distribution(y) <- greta::poisson(mean = exp(mu))
     } else {
       stop("family must be 'gaussian' or 'poisson'")
     }
   }
   
   # define model
-  greta_model <- greta::model(alpha, beta, gamma, ...)
+  greta_model <- greta::model(mu, alpha, beta, gamma, ...)
 
   # return model
   greta_model
