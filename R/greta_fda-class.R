@@ -475,7 +475,7 @@ build_greta_fda <- function (y, x, z,
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
-      mu <- mu + (gamma[[rand]][z, ] %*% spline_basis)
+      mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
     }
   }
   
