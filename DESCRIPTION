@@ -1,28 +1,24 @@
-Package: trophic
+Package: greta.fda
 Type: Package
-Title: Trophic Models of Energetics to Estimate Carrying Capacity 
+Title: Bayesian Functional Data Analysis with greta 
 Version: 0.0.1
 Date: 2018-06-04
 Authors@R: as.person(c(
-    "Jian Yen <jdl.yen@gmail.com> [aut, cre]", 
-    "Nick Bond <n.bond@latrobe.edu.au> [aut]",
-    "Jim Thomson <jim.thomson@delwp.vic.gov.au> [ctb]"
+    "Jian Yen <jdl.yen@gmail.com> [aut, cre]" 
   ))
-Description: Use complete or partial food webs to predict energy flows to any level of an ecosystem. Link available energy to carrying capacity in abundance and biomass using complete or partial size-abundance distributions. 
+Description: Use greta to generate parameter estimates for generalised function regression models.
 License: file LICENSE 
-URL: https://github.com/jdyen/trophic
-BugReports: https://github.com/jdyen/trophic/issues
+URL: https://github.com/jdyen/greta.fda
+BugReports: https://github.com/jdyen/greta.fda/issues
 Encoding: UTF-8
 LazyData: true
 Depends:
     R (>= 3.0)
 Imports:
-    igraph,
-    future,    
-    future.apply,
+    greta,
+    splines,    
     stats,
-    graphics,
-    truncnorm
+    graphics
 Suggests:
     knitr,
     testthat,

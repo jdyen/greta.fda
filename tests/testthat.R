@@ -1,4 +1,4 @@
 library(testthat)
-library(trophic)
+library(greta.fda)
 
-test_check("trophic")
+test_check("greta.fda")
