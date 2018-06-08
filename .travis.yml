@@ -4,13 +4,11 @@ warnings_are_errors: false
 dist: trusty
 
 r_packages:
-  - truncnorm
-  - future
-  - future.apply
+  - greta
+  - splines  
   - stats
   - graphics
   - rmarkdown
-  - igraph
   - testthat
   - covr
   - knitr

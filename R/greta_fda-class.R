@@ -337,7 +337,7 @@ build_greta_fda <- function (y, x, z,
   }
   
   # add error structure
-  if (errors = 'iid') {
+  if (errors == 'iid') {
     bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
   } else {
     if (errors == 'ar1') {
