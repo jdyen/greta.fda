@@ -150,7 +150,12 @@ greta_fda.default <- function (y, x, z = NULL,
                                errors = 'iid', ...) {
   
   # test inputs (dimensions of y, x, z; classes of y, x, z)
-  if (!all_equal(nrow(y), nrow(x), nrow(z))) {
+  if (is.null(z)) {
+    nrow_z <- nrow(x)
+  } else {
+    nrow_z <- nrow(z)
+  }
+  if (!all_equal(nrow(y), nrow(x), nrow_z)) {
     stop("x, y, and z must have the same number of rows")
   }
   if (!is.matrix(y)) {
