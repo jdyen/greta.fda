@@ -87,12 +87,23 @@ greta_fda.formula <- function (formula, data,
 
   # create x, y, z objects to pass to default method
   y <- get(response, envir = as.environment(data), inherits = TRUE)
-  x_tmp <- mget(var_names[-random], envir = as.environment(data), inherits = TRUE)
-  z_tmp <- mget(var_names[random], envir = as.environment(data), inherits = TRUE)
+  if (length(var_names[-random])) {
+    x_tmp <- mget(var_names[-random], envir = as.environment(data), inherits = TRUE)
+  }
+  if (length(random)) {
+    z_tmp <- mget(var_names[random], envir = as.environment(data), inherits = TRUE)
+  }
   
   # create model matrix
-  x <- model.frame(paste0(" ~ ", paste(var_names[-random], collapse = " + ")), data = x_tmp)
-  z <- model.frame(paste0(" ~ ", paste(var_names[random], collapse = " + ")), data = z_tmp)
+  if (length(var_names[-random])) {
+    x <- model.matrix(paste0(" ~ ", paste(var_names[-random], collapse = " + ")), data = x_tmp)
+  } else {
+    x <- matrix(1, nrow = length(y), ncol = 1)
+    colnames(x) <- '(Intercept)'
+  }
+  if (length(random)) {
+    z <- model.matrix(paste0(" ~ ", paste(var_names[random], collapse = " + ")), data = z_tmp)
+  }
   
   # fit model
   model <- greta_fda.default(y = y, x = x, z = z,
@@ -364,7 +375,7 @@ build_greta_fda <- function (y, x, z,
     distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
   } else {
     if (family == 'poisson') {
-      distribution(y) <- greta::poisson(mean = exp(mu))
+      distribution(y) <- greta::poisson(lambda = exp(mu))
     } else {
       stop("family must be 'gaussian' or 'poisson'")
     }
