@@ -398,7 +398,11 @@ build_greta_fda <- function (y, x, z,
   }
   
   # define model
-  greta_model <- greta::model(mu, alpha, beta, gamma, ...)
+  if (!is.null(z)) {
+    greta_model <- greta::model(mu, alpha, beta, gamma, ...)
+  } else {
+    greta_model <- greta::model(mu, alpha, beta, ...)
+  }
 
   # return model
   greta_model
