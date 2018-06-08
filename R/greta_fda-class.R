@@ -101,6 +101,7 @@ greta_fda.formula <- function (formula, data,
   }
   if (length(random_vars)) {
     z_tmp <- mget(random_vars, envir = as.environment(data), inherits = TRUE)
+    z_tmp <- lapply(z_tmp, function(x) as.integer(as.factor(x)))
   }
   
   # create model matrix
@@ -292,10 +293,10 @@ is.greta_fda <- function (model) {
 #' # Print information about a 'greta_fda' object
 #'
 #' \dontrun{
-#' print(model)
+#' print(x)
 #' }
 
-print.greta_fda <- function (model, ...) {
+print.greta_fda <- function (x, ...) {
   cat(paste0('This is a greta_fda model\n'))
 }
 
@@ -308,13 +309,112 @@ print.greta_fda <- function (model, ...) {
 #' # Plot a 'greta_fda' object
 #'
 #' \dontrun{
-#' plot(model)
+#' plot(x)
 #' }
 
-plot.greta_fda <- function (model, ...) {
+plot.greta_fda <- function (x, ...) {
 
-  plot(model$samples, ...)
+  plot(x$samples, ...)
 
+}
+
+#' @rdname greta_fda
+#'
+#' @export
+#'
+#' @examples
+#' 
+#' # Summarise a 'greta_fda' object
+#'
+#' \dontrun{
+#' summary(x)
+#' }
+
+summary.greta_fda <- function (x, ...) {
+  
+  # calculate Bayesian R2
+  # y <- x$data$y
+  # yhat <- predict(x)
+  # e <- -1 * sweep(yhat, 2, y)
+  # var_yhat <- apply(yhat, 1, var)
+  # var_e <- apply(e, 1, var)
+  # bayes_R2 <- var_yhat / (var_yhat + var_e)
+
+  # calculate rhat
+  rhat <- NULL
+  
+  # return outputs
+  list(bayes_R2 = bayes_R2,
+       coefficients = coef(x),
+       rhat = rhat)
+  
+}
+
+#' @rdname greta_fda
+#'
+#' @export
+#'
+#' @examples
+#' 
+#' # Extract coefficients from a 'greta_fda' object
+#'
+#' \dontrun{
+#' coef(x)
+#' }
+
+coef.greta_fda <- function (x, ...) {
+  
+  # extract coefficients
+  alpha <- sapply(x$samples, function(x) x[, grep("alpha", colnames(x))])
+  beta <- sapply(x$samples, function(x) x[, grep("beta", colnames(x))])
+  gamma <- sapply(x$samples, function(x) x[, grep("gamma", colnames(x))])
+  
+  # return some summary of this
+  list(alpha = alpha,
+       beta = beta,
+       gamma = gamma)
+  
+}
+
+#' @rdname greta_fda
+#'
+#' @export
+#'
+#' @examples
+#' 
+#' # Calculate fitted values from a 'greta_fda' object
+#'
+#' \dontrun{
+#' fitted(x)
+#' }
+
+fitted.greta_fda <- function (x, ...) {
+  
+  # calculate fitted values
+  fitted <- sapply(x$samples, function(x) x[, grep("mu", colnames(x))])
+  
+  # return some summary of fitted values
+  fitted
+  
+}
+
+#' @rdname greta_fda
+#'
+#' @export
+#'
+#' @examples
+#' 
+#' # Predict values from a 'greta_fda' object
+#'
+#' \dontrun{
+#' predict(x)
+#' }
+
+predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "response"),
+                               re.form = NULL, fun = NULL) {
+  
+  # predict new values
+  
 }
 
 
