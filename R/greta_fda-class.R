@@ -226,7 +226,8 @@ greta_fda.default <- function (y, x, z = NULL,
                     warmup = 1000,
                     chains = 1,
                     verbose = TRUE,
-                    pb_update = 50)
+                    pb_update = 50,
+                    initial_values = NULL)
   greta_set[names(greta_settings)] <- greta_settings
   
   # unpack spline settings
@@ -245,6 +246,9 @@ greta_fda.default <- function (y, x, z = NULL,
                                  spline_set,
                                  ...)
   
+  # add initial values if not specified
+  greta_set$initial_values <- rep(0.0, length(greta_model$dag$example_parameters()))
+  
   # sample from greta model
   samples <- mcmc(greta_model,
                   sampler = greta_set$sampler,
@@ -253,7 +257,8 @@ greta_fda.default <- function (y, x, z = NULL,
                   warmup = greta_set$warmup,
                   chains = greta_set$chains,
                   verbose = greta_set$verbose,
-                  pb_update = greta_set$pb_update)
+                  pb_update = greta_set$pb_update,
+                  initial_values = greta_set$initial_values)
   
   # set link function (to be added)
   if (is.null(link)) {
