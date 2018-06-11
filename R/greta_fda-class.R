@@ -502,7 +502,7 @@ build_greta_fda <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- greta::as_data(t(spline_basis))
+  spline_basis <- greta::as_data(t(spline_basis[seq_len(np), seq_len(np)]))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
