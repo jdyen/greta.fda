@@ -7,23 +7,36 @@
 \alias{is.greta_fda}
 \alias{print.greta_fda}
 \alias{plot.greta_fda}
+\alias{summary.greta_fda}
+\alias{coef.greta_fda}
+\alias{fitted.greta_fda}
+\alias{predict.greta_fda}
 \title{A greta_fda regression model with function-valued data}
 \usage{
 greta_fda(y, ...)
 
-\method{greta_fda}{formula}(formula, data, family = "gaussian", bins = NULL,
-  greta_settings = list(), spline_settings = list(), priors = list(),
-  errors = "iid", ...)
-
-\method{greta_fda}{default}(y, x, z = NULL, family = "gaussian",
+\method{greta_fda}{formula}(formula, data, family = "gaussian", link = NULL,
   bins = NULL, greta_settings = list(), spline_settings = list(),
   priors = list(), errors = "iid", ...)
 
+\method{greta_fda}{default}(y, x, z = NULL, family = "gaussian",
+  link = NULL, bins = NULL, greta_settings = list(),
+  spline_settings = list(), priors = list(), errors = "iid", ...)
+
 is.greta_fda(model)
 
-\method{print}{greta_fda}(model, ...)
+\method{print}{greta_fda}(x, ...)
 
-\method{plot}{greta_fda}(model, ...)
+\method{plot}{greta_fda}(x, ...)
+
+\method{summary}{greta_fda}(x, ...)
+
+\method{coef}{greta_fda}(x, ...)
+
+\method{fitted}{greta_fda}(x, ...)
+
+\method{predict}{greta_fda}(x, ..., newdata = NULL, type = c("link",
+  "response"), re.form = NULL, fun = NULL)
 }
 \arguments{
 \item{y}{a \code{matrix} or \code{data.frame} with the response variable (one row per observation)}
@@ -35,6 +48,8 @@ is.greta_fda(model)
 \item{data}{a named list containing the variables in \code{formula}}
 
 \item{family}{a GLM family passed as a \code{character}, see \link[stats]{family} (currently only gaussian (default) and poisson families are implemented)}
+
+\item{link}{link function to be used for model family, see \link[stats]{family} for details (currently not implemented)}
 
 \item{bins}{a vector of values at which the response variable is recorded}
 
@@ -108,12 +123,36 @@ is.greta_fda(model)
 # Print information about a 'greta_fda' object
 
 \dontrun{
-print(model)
+print(x)
 }
 
 # Plot a 'greta_fda' object
 
 \dontrun{
-plot(model)
+plot(x)
+}
+
+# Summarise a 'greta_fda' object
+
+\dontrun{
+summary(x)
+}
+
+# Extract coefficients from a 'greta_fda' object
+
+\dontrun{
+coef(x)
+}
+
+# Calculate fitted values from a 'greta_fda' object
+
+\dontrun{
+fitted(x)
+}
+
+# Predict values from a 'greta_fda' object
+
+\dontrun{
+predict(x)
 }
 }
