@@ -525,7 +525,7 @@ build_greta_fda <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- x %*% (beta %*% spline_basis)
+  mu <- sweep(x %*% (beta %*% spline_basis), 2, rep(1, nj), "*")
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
