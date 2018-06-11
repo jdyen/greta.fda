@@ -7,6 +7,7 @@
 #' @param formula formula describing the model to be fitted, in the format used by \link[lme4]{lmer}
 #' @param data a named list containing the variables in \code{formula}
 #' @param family a GLM family passed as a \code{character}, see \link[stats]{family} (currently only gaussian (default) and poisson families are implemented)
+#' @param link link function to be used for model family, see \link[stats]{family} for details (currently not implemented)
 #' @param y a \code{matrix} or \code{data.frame} with the response variable (one row per observation)
 #' @param x a \code{matrix} or \code{data.frame} of predictor variables
 #' @param z a \code{matrix} or \code{data.frame} of random effects variables
@@ -72,6 +73,7 @@ greta_fda <- function (y, ...) {
 
 greta_fda.formula <- function (formula, data,
                                family = 'gaussian',
+                               link = NULL,
                                bins = NULL,
                                greta_settings = list(),
                                spline_settings = list(),
@@ -120,6 +122,7 @@ greta_fda.formula <- function (formula, data,
   # fit model
   model <- greta_fda.default(y = y, x = x, z = z,
                              family,
+                             link = link,
                              bins = bins,
                              greta_settings = greta_settings,
                              spline_settings = spline_settings,
@@ -132,7 +135,6 @@ greta_fda.formula <- function (formula, data,
   
   # return fitted model
   model
-  
   
 }
 
@@ -152,7 +154,8 @@ greta_fda.formula <- function (formula, data,
 #' }
 
 greta_fda.default <- function (y, x, z = NULL,
-                               family = "gaussian",
+                               family = 'gaussian',
+                               link = NULL,
                                bins = NULL,
                                greta_settings = list(),
                                spline_settings = list(),
@@ -236,6 +239,7 @@ greta_fda.default <- function (y, x, z = NULL,
   # prepare model
   greta_model <- build_greta_fda(y, x, z,
                                  family,
+                                 link,
                                  bins,
                                  priors,
                                  errors,
@@ -253,14 +257,31 @@ greta_fda.default <- function (y, x, z = NULL,
                   pb_update = greta_set$pb_update,
                   initial_values = greta_set$initial_values)
   
+  # set link function (to be added)
+  if (is.null(link)) {
+    if (family == 'gaussian') {
+      link <- 'identity'
+    }
+    if (family == 'poisson') {
+      link <- 'log'
+    }
+    if (family == 'binomial') {
+      link <- 'cloglog'
+    }
+  }
+  
   # compile results
-  model <- list(samples = samples,
+  model <- list(samples = samples$samples,
                 data = list(y = y,
                             x = x,
-                            z = z),
+                            z = z,
+                            bins = samples$bins),
                 family = family,
+                spline_basis = samples$spline_basis
                 greta_settings = greta_set,
                 spline_settings = spline_set,
+                link = link,
+                formula = NULL,
                 priors = priors,
                 errors = errors)
   
@@ -365,14 +386,18 @@ summary.greta_fda <- function (x, ...) {
 coef.greta_fda <- function (x, ...) {
   
   # extract coefficients
-  alpha <- sapply(x$samples, function(x) x[, grep("alpha", colnames(x))])
-  beta <- sapply(x$samples, function(x) x[, grep("beta", colnames(x))])
-  gamma <- sapply(x$samples, function(x) x[, grep("gamma", colnames(x))])
-  
+  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  beta <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
+                                                      nrow = ncol(x$data$x)))
+  beta_mean <- array(NA, dim = c(nrow(beta[[1]]), ncol(beta[[1]]), length(beta)))
+  for (i in seq_along(beta)) {
+    beta_mean[, , i] <- beta[[i]]
+  }
+  beta_mean <- apply(beta_mean, c(1, 2), mean)
+  beta_link <- beta_mean %*% as.matrix(x$spline_basis)
+
   # return some summary of this
-  list(alpha = alpha,
-       beta = beta,
-       gamma = gamma)
+  list(beta = beta_link)
   
 }
 
@@ -391,10 +416,14 @@ coef.greta_fda <- function (x, ...) {
 fitted.greta_fda <- function (x, ...) {
   
   # calculate fitted values
-  fitted <- sapply(x$samples, function(x) x[, grep("mu", colnames(x))])
-  
+  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  fitted <- lapply(param_estimates,
+                   function(z) z[grep('mu', names(param_estimates[[1]]))])
+  fitted <- do.call('rbind', fitted)
+  fitted <- apply(fitted, 2, mean)
+
   # return some summary of fitted values
-  fitted
+  matrix(fitted, ncol = ncol(x$data$y))
   
 }
 
@@ -413,7 +442,24 @@ fitted.greta_fda <- function (x, ...) {
 predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "response"),
                                re.form = NULL, fun = NULL) {
   
-  # predict new values
+  # fill data (check lme4 method for this)
+  if (is.null(newdata)) {
+    newdata <- x$data
+  }
+  
+  # calculate coefficient
+  coefs <- coef(x)
+  
+  # predict outputs
+  out <- newdata$x %*% coefs$beta
+  
+  # add random effects based on re.form
+
+  # set link function
+  
+  
+  # return outputs
+  out
   
 }
 
@@ -421,6 +467,7 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
 # internal function: create greta model from input data
 build_greta_fda <- function (y, x, z,
                              family,
+                             link,
                              bins,
                              priors,
                              errors, 
@@ -448,7 +495,7 @@ build_greta_fda <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- t(spline_basis)
+  spline_basis <- as_data(t(spline_basis))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -458,7 +505,6 @@ build_greta_fda <- function (y, x, z,
   }
   
   # setup parameters
-  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
   
   if (!is.null(z)) {
@@ -472,7 +518,7 @@ build_greta_fda <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
+  mu <- x %*% (beta %*% spline_basis)
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
@@ -494,29 +540,35 @@ build_greta_fda <- function (y, x, z,
   mu <- sweep(mu, 2, bin_errors, '+')
   
   # setup likelihood
+  if (!(family %in% c('gaussian', 'poisson', 'binomial'))) {
+    stop("family must be 'gaussian' or 'poisson'")
+  }
   if (family == 'gaussian') {
     distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
-  } else {
-    if (family == 'poisson') {
-      distribution(y) <- greta::poisson(lambda = exp(mu))
-    } else {
-      stop("family must be 'gaussian' or 'poisson'")
-    }
+  }
+  if (family == 'poisson') {
+    distribution(y) <- greta::poisson(lambda = exp(mu))
+  }
+  if (family == 'binomial') {
+    distribution(y) <- greta::poisson(size = 1,
+                                      lambda = icloglog(mu))
   }
   
   # define model
   if (!is.null(z)) {
-    greta_model <- greta::model(mu, alpha, beta,
+    greta_model <- greta::model(mu, beta,
                                 sigma_gamma, sigma_main, sigma_bins,
                                 ...)
   } else {
-    greta_model <- greta::model(mu, alpha, beta,
+    greta_model <- greta::model(mu, beta,
                                 sigma_main, sigma_bins,
                                 ...)
   }
 
   # return model
-  greta_model
+  list(samples = greta_model,
+       spline_basis = spline_basis,
+       bins = bins)
   
 }
 
