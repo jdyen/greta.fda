@@ -226,8 +226,7 @@ greta_fda.default <- function (y, x, z = NULL,
                     warmup = 1000,
                     chains = 1,
                     verbose = TRUE,
-                    pb_update = 50,
-                    initial_values = NULL)
+                    pb_update = 50)
   greta_set[names(greta_settings)] <- greta_settings
   
   # unpack spline settings
@@ -254,8 +253,7 @@ greta_fda.default <- function (y, x, z = NULL,
                   warmup = greta_set$warmup,
                   chains = greta_set$chains,
                   verbose = greta_set$verbose,
-                  pb_update = greta_set$pb_update,
-                  initial_values = greta_set$initial_values)
+                  pb_update = greta_set$pb_update)
   
   # set link function (to be added)
   if (is.null(link)) {
@@ -550,8 +548,8 @@ build_greta_fda <- function (y, x, z,
     distribution(y) <- greta::poisson(lambda = exp(mu))
   }
   if (family == 'binomial') {
-    distribution(y) <- greta::poisson(size = 1,
-                                      lambda = icloglog(mu))
+    distribution(y) <- greta::binomial(size = 1,
+                                       prob = greta::icloglog(mu))
   }
   
   # define model
