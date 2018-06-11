@@ -484,6 +484,10 @@ build_greta_fda <- function (y, x, z,
     nt <- ncol(z)
     ngroup <- apply(z, 2, max)
   }
+  
+  # convert data to greta_array
+  x <- greta::as_data(x)
+  y <- greta::as_data(y)
 
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
@@ -498,7 +502,7 @@ build_greta_fda <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- as_data(t(spline_basis))
+  spline_basis <- greta::as_data(t(spline_basis))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -559,7 +563,9 @@ build_greta_fda <- function (y, x, z,
   
   # define model
   if (!is.null(z)) {
-    greta_model <- greta::model(mu, beta, ...)
+    greta_model <- greta::model(mu, beta,
+                                sigma_main, sigma_bins, sigma_gamma,
+                                ...)
   } else {
     greta_model <- greta::model(mu, beta,
                                 sigma_main, sigma_bins,
