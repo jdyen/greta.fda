@@ -220,7 +220,7 @@ greta_fda.default <- function (y, x, z = NULL,
   }
 
   # unpack greta_settings
-  greta_set <- list(sampler = hmc(),
+  greta_set <- list(sampler = greta::hmc(),
                     n_samples = 1000,
                     thin = 1,
                     warmup = 1000,
@@ -250,15 +250,15 @@ greta_fda.default <- function (y, x, z = NULL,
   greta_set$initial_values <- rep(0.0, length(greta_model$dag$example_parameters()))
   
   # sample from greta model
-  samples <- mcmc(greta_model,
-                  sampler = greta_set$sampler,
-                  n_samples = greta_set$n_samples,
-                  thin = greta_set$thin,
-                  warmup = greta_set$warmup,
-                  chains = greta_set$chains,
-                  verbose = greta_set$verbose,
-                  pb_update = greta_set$pb_update,
-                  initial_values = greta_set$initial_values)
+  samples <- greta::mcmc(greta_model,
+                         sampler = greta_set$sampler,
+                         n_samples = greta_set$n_samples,
+                         thin = greta_set$thin,
+                         warmup = greta_set$warmup,
+                         chains = greta_set$chains,
+                         verbose = greta_set$verbose,
+                         pb_update = greta_set$pb_update,
+                         initial_values = greta_set$initial_values)
   
   # set link function (to be added)
   if (is.null(link)) {
