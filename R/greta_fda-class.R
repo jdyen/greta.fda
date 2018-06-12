@@ -250,7 +250,7 @@ greta_fda.default <- function (y, x, z = NULL,
   greta_set$initial_values <- rep(0.0, length(greta_model$dag$example_parameters()))
   
   # sample from greta model
-  samples <- greta::mcmc(greta_model,
+  samples <- greta::mcmc(greta_model$greta_model,
                          sampler = greta_set$sampler,
                          n_samples = greta_set$n_samples,
                          thin = greta_set$thin,
@@ -573,7 +573,7 @@ build_greta_fda <- function (y, x, z,
   }
 
   # return model
-  list(samples = greta_model,
+  list(greta_model = greta_model,
        spline_basis = spline_basis,
        bins = bins)
   
