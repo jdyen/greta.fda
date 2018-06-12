@@ -199,6 +199,7 @@ greta_fda.default <- function (y, x, z = NULL,
       }
     }
   }
+  x <- x[, -1]
   if (!is.null(z)) {
     if (!is.matrix(z)) {
       if (is.data.frame(z)) {
@@ -486,8 +487,8 @@ build_greta_fda <- function (y, x, z,
   }
   
   # convert data to greta_array
-  x <- greta::as_data(x)
-  y <- greta::as_data(y)
+  # x <- greta::as_data(x)
+  # y <- greta::as_data(y)
 
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
@@ -502,7 +503,7 @@ build_greta_fda <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- greta::as_data(t(spline_basis))
+  spline_basis <- t(spline_basis)
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -512,6 +513,7 @@ build_greta_fda <- function (y, x, z,
   }
   
   # setup parameters
+  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
   beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
   
   if (!is.null(z)) {
@@ -525,7 +527,7 @@ build_greta_fda <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- sweep(x %*% (beta %*% spline_basis), 2, rep(1, nj), "*")
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), "+")
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
