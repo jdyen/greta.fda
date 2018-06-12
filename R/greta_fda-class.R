@@ -72,6 +72,7 @@ greta_fda <- function (y, ...) {
 
 greta_fda.formula <- function (formula, data,
                                family = 'gaussian',
+                               link = NULL,
                                bins = NULL,
                                greta_settings = list(),
                                spline_settings = list(),
@@ -119,7 +120,8 @@ greta_fda.formula <- function (formula, data,
   
   # fit model
   model <- greta_fda.default(y = y, x = x, z = z,
-                             family,
+                             family = family,
+                             link = link,
                              bins = bins,
                              greta_settings = greta_settings,
                              spline_settings = spline_settings,
@@ -153,6 +155,7 @@ greta_fda.formula <- function (formula, data,
 
 greta_fda.default <- function (y, x, z = NULL,
                                family = "gaussian",
+                               link = NULL,
                                bins = NULL,
                                greta_settings = list(),
                                spline_settings = list(),
@@ -236,14 +239,28 @@ greta_fda.default <- function (y, x, z = NULL,
   # prepare model
   greta_model <- build_greta_fda(y, x, z,
                                  family,
+                                 link,
                                  bins,
                                  priors,
                                  errors,
                                  spline_set,
                                  ...)
   
+  # set link function (to be added)
+  if (is.null(link)) {
+    if (family == 'gaussian') {
+      link <- 'identity'
+    }
+    if (family == 'poisson') {
+      link <- 'log'
+    }
+    if (family == 'binomial') {
+      link <- 'cloglog'
+    }
+  }
+  
   # sample from greta model
-  samples <- mcmc(greta_model,
+  samples <- mcmc(greta_model$greta_model,
                   sampler = greta_set$sampler,
                   n_samples = greta_set$n_samples,
                   thin = greta_set$thin,
@@ -254,13 +271,17 @@ greta_fda.default <- function (y, x, z = NULL,
                   initial_values = greta_set$initial_values)
   
   # compile results
-  model <- list(samples = samples,
+  model <- list(samples = samples$samples,
                 data = list(y = y,
                             x = x,
-                            z = z),
+                            z = z,
+                            bins = greta_model$bins),
                 family = family,
+                spline_basis = greta_model$spline_basis,
                 greta_settings = greta_set,
                 spline_settings = spline_set,
+                link = link,
+                formula = NULL,
                 priors = priors,
                 errors = errors)
   
@@ -365,14 +386,18 @@ summary.greta_fda <- function (x, ...) {
 coef.greta_fda <- function (x, ...) {
   
   # extract coefficients
-  alpha <- sapply(x$samples, function(x) x[, grep("alpha", colnames(x))])
-  beta <- sapply(x$samples, function(x) x[, grep("beta", colnames(x))])
-  gamma <- sapply(x$samples, function(x) x[, grep("gamma", colnames(x))])
+  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  beta <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
+                                                     nrow = ncol(x$data$x)))
+  beta_mean <- array(NA, dim = c(nrow(beta[[1]]), ncol(beta[[1]]), length(beta)))
+  for (i in seq_along(beta)) {
+    beta_mean[, , i] <- beta[[i]]
+  }
+  beta_mean <- apply(beta_mean, c(1, 2), mean)
+  beta_link <- beta_mean %*% as.matrix(x$spline_basis)
   
   # return some summary of this
-  list(alpha = alpha,
-       beta = beta,
-       gamma = gamma)
+  list(beta = beta_link)
   
 }
 
@@ -391,10 +416,14 @@ coef.greta_fda <- function (x, ...) {
 fitted.greta_fda <- function (x, ...) {
   
   # calculate fitted values
-  fitted <- sapply(x$samples, function(x) x[, grep("mu", colnames(x))])
+  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  fitted <- lapply(param_estimates,
+                   function(z) z[grep('mu', names(param_estimates[[1]]))])
+  fitted <- do.call('rbind', fitted)
+  fitted <- apply(fitted, 2, mean)
   
   # return some summary of fitted values
-  fitted
+  matrix(fitted, ncol = ncol(x$data$y))
   
 }
 
@@ -413,7 +442,24 @@ fitted.greta_fda <- function (x, ...) {
 predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "response"),
                                re.form = NULL, fun = NULL) {
   
-  # predict new values
+  # fill data (check lme4 method for this)
+  if (is.null(newdata)) {
+    newdata <- x$data
+  }
+  
+  # calculate coefficient
+  coefs <- coef(x)
+  
+  # predict outputs
+  out <- newdata$x %*% coefs$beta
+  
+  # add random effects based on re.form
+  
+  # set link function
+  
+  
+  # return outputs
+  out
   
 }
 
@@ -421,6 +467,7 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
 # internal function: create greta model from input data
 build_greta_fda <- function (y, x, z,
                              family,
+                             link,
                              bins,
                              priors,
                              errors, 
@@ -516,7 +563,9 @@ build_greta_fda <- function (y, x, z,
   }
 
   # return model
-  greta_model
+  list(greta_model = greta_model,
+       spline_basis = spline_basis,
+       bins = bins)
   
 }
 
