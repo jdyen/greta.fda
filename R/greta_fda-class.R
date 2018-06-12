@@ -7,6 +7,7 @@
 #' @param formula formula describing the model to be fitted, in the format used by \link[lme4]{lmer}
 #' @param data a named list containing the variables in \code{formula}
 #' @param family a GLM family passed as a \code{character}, see \link[stats]{family} (currently only gaussian (default) and poisson families are implemented)
+#' @param link a link function for the specified GLM family, see \link[stats]{family} for details
 #' @param y a \code{matrix} or \code{data.frame} with the response variable (one row per observation)
 #' @param x a \code{matrix} or \code{data.frame} of predictor variables
 #' @param z a \code{matrix} or \code{data.frame} of random effects variables
@@ -271,7 +272,7 @@ greta_fda.default <- function (y, x, z = NULL,
                   initial_values = greta_set$initial_values)
   
   # compile results
-  model <- list(samples = samples$samples,
+  model <- list(samples = samples,
                 data = list(y = y,
                             x = x,
                             z = z,
@@ -302,7 +303,7 @@ greta_fda.default <- function (y, x, z = NULL,
 #' }
 
 is.greta_fda <- function (model) {
-  inherits(x, 'greta_fda')
+  inherits(model, 'greta_fda')
 }
 
 #' @rdname greta_fda
