@@ -199,6 +199,11 @@ greta_fda.default <- function (y, x, z = NULL,
       }
     }
   }
+  if (ncol(x) > 1) {
+    x <- x[, -1]
+  } else {
+    x <- matrix(rep(0, nrow(x)), ncol = 1)
+  }
   if (!is.null(z)) {
     if (!is.matrix(z)) {
       if (is.data.frame(z)) {
