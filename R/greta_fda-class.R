@@ -107,10 +107,10 @@ greta_fda.formula <- function (formula, data,
   
   # create model matrix
   if (length(fixed_vars)) {
-    x <- model.matrix(as.formula(paste0(" ~ ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
+    x <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
   } else {
-    x <- matrix(1, nrow = length(y), ncol = 1)
-    colnames(x) <- '(Intercept)'
+    x <- matrix(0, nrow = length(y), ncol = 1)
+    colnames(x) <- 'null'
   }
   if (length(random_vars)) {
     z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(random_vars, collapse = " + "))), data = z_tmp)
@@ -198,11 +198,6 @@ greta_fda.default <- function (y, x, z = NULL,
         stop("x must be a matrix or data.frame")
       }
     }
-  }
-  if (ncol(x) > 1) {
-    x <- x[, -1]
-  } else {
-    x <- matrix(rep(0, nrow(x)), ncol = 1)
   }
   if (!is.null(z)) {
     if (!is.matrix(z)) {
