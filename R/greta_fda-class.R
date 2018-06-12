@@ -566,7 +566,7 @@ build_greta_fda <- function (y, x, z,
   # define model
   if (!is.null(z)) {
     greta_model <- greta::model(mu, alpha, beta,
-                                sigma_main,q sigma_bins, sigma_gamma,
+                                sigma_main, sigma_bins, sigma_gamma,
                                 ...)
   } else {
     greta_model <- greta::model(mu, alpha, beta,
