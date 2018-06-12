@@ -388,17 +388,24 @@ coef.greta_fda <- function (x, ...) {
   
   # extract coefficients
   param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  alpha <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
+                                                      nrow = 1))
   beta <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
                                                      nrow = ncol(x$data$x)))
+  alpha_mean <- array(NA, dim = c(nrow(alpha[[1]]), ncol(alpha[[1]]), length(alpha)))
   beta_mean <- array(NA, dim = c(nrow(beta[[1]]), ncol(beta[[1]]), length(beta)))
   for (i in seq_along(beta)) {
+    alpha_mean[, , i] <- alpha[[i]]
     beta_mean[, , i] <- beta[[i]]
   }
+  alpha_mean <- apply(alpha_mean, c(1, 2), mean)
   beta_mean <- apply(beta_mean, c(1, 2), mean)
+  alpha_link <- alpha_mean %*% as.matrix(x$spline_basis)
   beta_link <- beta_mean %*% as.matrix(x$spline_basis)
   
   # return some summary of this
-  list(beta = beta_link)
+  list(alpha = alpha_link,
+       beta = beta_link)
   
 }
 
@@ -452,7 +459,7 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
   coefs <- coef(x)
   
   # predict outputs
-  out <- newdata$x %*% coefs$beta
+  out <- coefs$alpha + newdata$x %*% coefs$beta
   
   # add random effects based on re.form
   
@@ -542,24 +549,31 @@ build_greta_fda <- function (y, x, z,
   mu <- sweep(mu, 2, bin_errors, '+')
   
   # setup likelihood
-  if (family == 'gaussian') {
-    distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
-  } else {
-    if (family == 'poisson') {
-      distribution(y) <- greta::poisson(lambda = exp(mu))
-    } else {
-      stop("family must be 'gaussian' or 'poisson'")
-    }
+  if (!(family %in% c('gaussian', 'poisson', 'binomial'))) {
+    stop("family must be 'gaussian' or 'poisson'")
   }
+  if (family == 'gaussian') {
+    greta::distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
+  }
+  if (family == 'poisson') {
+    greta::distribution(y) <- greta::poisson(lambda = exp(mu))
+  }  
+  if (family == 'binomial') {
+    greta::distribution(y) <- greta::binomial(size = 1,
+                                              prob = greta::icloglog(mu))
+  } 
   
   # define model
   if (!is.null(z)) {
-    greta_model <- greta::model(mu, alpha, beta,
+    gamma_vec <- do.call('c', gamma_vec)
+    greta_model <- greta::model(mu,
+                                alpha, beta, gamma_vec,
                                 sigma_gamma, sigma_main, sigma_bins,
                                 ...)
   } else {
-    greta_model <- greta::model(mu, alpha, beta,
-                                sigma_main, sigma_bins,
+    greta_model <- greta::model(mu,
+                                alpha, beta,
+                                sigma_gamma, sigma_main, sigma_bins,
                                 ...)
   }
 
