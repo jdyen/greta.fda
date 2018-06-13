@@ -673,7 +673,10 @@ build_greta_fda_flat <- function (y, x, z,
   }
 
   # define linear predictor
-  mu <- t(alpha %*% spline_basis) + apply((x * t(beta %*% spline_basis)), 1, sum)
+  mu <- t(alpha %*% spline_basis)
+  for (i in seq_len(nk)) {
+    mu <- mu + (x[, i] * t(beta[i, ] %*% spline_basis))
+  }
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + t(gamma[[rand]][z[, rand], ] %*% spline_basis)
