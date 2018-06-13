@@ -183,7 +183,7 @@ greta_fda.default <- function (y, x, z = NULL,
       model_type <- 'matrix'
     } else {
       if (is.numeric(y)) {
-        if (all_equal(nrow(y), nrow(x), nrow_z)) {
+        if (all_equal(length(y), nrow(x), nrow_z)) {
           model_type <- 'flat'
           if (is.null(bins)) {
             stop('bins must be provided if the response variable is flattened')
@@ -519,6 +519,10 @@ build_greta_fda_matrix <- function (y, x, z,
     ngroup <- apply(z, 2, max)
   }
 
+  # convert x and y to greta arrays
+  x <- greta::as_data(x)
+  y <- greta::as_data(y) 
+  
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
     bins <- seq_len(nj)
@@ -532,7 +536,7 @@ build_greta_fda_matrix <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- t(spline_basis)
+  spline_basis <- greta::as_data(t(spline_basis))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -631,6 +635,10 @@ build_greta_fda_flat <- function (y, x, z,
     ngroup <- apply(z, 2, max)
   }
   
+  # convert x and y to greta arrays
+  x <- greta::as_data(x)
+  y <- greta::as_data(y) 
+
   # set up spline settings (nspline, nknots, degree)
   boundary_knots <- c(0, (nj + 1))
   np <- spline_settings$df
@@ -641,7 +649,7 @@ build_greta_fda_flat <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- t(spline_basis)
+  spline_basis <- greta::as_data(t(spline_basis))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
