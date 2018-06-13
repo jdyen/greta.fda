@@ -276,7 +276,7 @@ greta_fda.default <- function (y, x, z = NULL,
   }
 
   # add initial values if not specified
-  greta_set$initial_values <- rep(0.0, length(greta_model$dag$example_parameters()))
+  greta_set$initial_values <- rep(0.0, length(greta_model$greta_model$dag$example_parameters()))
   
   # sample from greta model
   samples <- mcmc(greta_model$greta_model,
