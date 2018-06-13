@@ -594,7 +594,7 @@ build_greta_fda_matrix <- function (y, x, z,
   
   # define model
   if (!is.null(z)) {
-    gamma_vec <- do.call('c', gamma_vec)
+    gamma_vec <- do.call('c', gamma)
     greta_model <- greta::model(mu,
                                 alpha, beta, gamma_vec,
                                 sigma_gamma, sigma_main, sigma_bins,
@@ -602,7 +602,7 @@ build_greta_fda_matrix <- function (y, x, z,
   } else {
     greta_model <- greta::model(mu,
                                 alpha, beta,
-                                sigma_gamma, sigma_main, sigma_bins,
+                                sigma_main, sigma_bins,
                                 ...)
   }
 
