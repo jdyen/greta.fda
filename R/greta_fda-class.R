@@ -526,8 +526,8 @@ build_greta_fda_matrix <- function (y, x, z,
   # y <- greta::as_data(y)
 
   # convert x and y to greta arrays
-  x <- greta::as_data(x)
-  y <- greta::as_data(y) 
+  # x <- greta::as_data(x)
+  # y <- greta::as_data(y) 
   
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
@@ -542,7 +542,8 @@ build_greta_fda_matrix <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- greta::as_data(t(spline_basis))
+  # spline_basis <- greta::as_data(t(spline_basis))
+  spline_basis <- t(spline_basis)
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -566,7 +567,7 @@ build_greta_fda_matrix <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- sweep((x %*% (beta %*% spline_basis)), 2, greta::t(alpha %*% spline_basis), "+")
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), "+")
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
@@ -642,8 +643,8 @@ build_greta_fda_flat <- function (y, x, z,
   }
   
   # convert x and y to greta arrays
-  x <- greta::as_data(x)
-  y <- greta::as_data(y) 
+  # x <- greta::as_data(x)
+  # y <- greta::as_data(y) 
 
   # set up spline settings (nspline, nknots, degree)
   boundary_knots <- c(0, max(bins) + 1)
@@ -655,7 +656,8 @@ build_greta_fda_flat <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- greta::as_data(t(spline_basis))
+  # spline_basis <- greta::as_data(t(spline_basis))
+  spline_basis <- t(spline_basis)
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -681,12 +683,12 @@ build_greta_fda_flat <- function (y, x, z,
   # define linear predictor
   mu <- t(alpha %*% spline_basis)
   for (i in seq_len(nk)) {
-    mu <- mu + (x[, i] * greta::t(beta[i, ] %*% spline_basis))
+    mu <- mu + (x[, i] * t(beta[i, ] %*% spline_basis))
   }
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       for (sp in seq_len(np)) {
-        mu <- mu + (gamma[[rand]][z[, rand], sp] * greta::t(spline_basis[sp, ]))
+        mu <- mu + (gamma[[rand]][z[, rand], sp] * t(spline_basis[sp, ]))
       }
     }
   }
