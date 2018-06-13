@@ -49,7 +49,11 @@ is.greta_fda(model)
 
 \item{family}{a GLM family passed as a \code{character}, see \link[stats]{family} (currently only gaussian (default) and poisson families are implemented)}
 
+<<<<<<< HEAD
 \item{link}{link function to be used for model family, see \link[stats]{family} for details (currently not implemented)}
+=======
+\item{link}{a link function for the specified GLM family, see \link[stats]{family} for details}
+>>>>>>> working
 
 \item{bins}{a vector of values at which the response variable is recorded}
 

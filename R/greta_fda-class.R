@@ -108,10 +108,10 @@ greta_fda.formula <- function (formula, data,
   
   # create model matrix
   if (length(fixed_vars)) {
-    x <- model.matrix(as.formula(paste0(" ~ ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
+    x <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
   } else {
-    x <- matrix(1, nrow = length(y), ncol = 1)
-    colnames(x) <- '(Intercept)'
+    x <- matrix(0, nrow = length(y), ncol = 1)
+    colnames(x) <- 'null'
   }
   if (length(random_vars)) {
     z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(random_vars, collapse = " + "))), data = z_tmp)
@@ -121,7 +121,7 @@ greta_fda.formula <- function (formula, data,
   
   # fit model
   model <- greta_fda.default(y = y, x = x, z = z,
-                             family,
+                             family = family,
                              link = link,
                              bins = bins,
                              greta_settings = greta_settings,
@@ -168,21 +168,38 @@ greta_fda.default <- function (y, x, z = NULL,
   } else {
     nrow_z <- nrow(z)
   }
-  if (!all_equal(nrow(y), nrow(x), nrow_z)) {
-    stop("x, y, and z must have the same number of rows")
-  }
   if (!is.matrix(y)) {
     if (is.data.frame(y)) {
       classes <- apply(y, 2, class)
       if (!all(classes == "numeric")) {
-        stop(paste0("the following columns in y are not numeric: ",
-                    colnames(y)[which(classes != "numeric")]))
+        stop(paste0('the following columns in y are not numeric: ',
+                    colnames(y)[which(classes != 'numeric')]))
       }
       y <- as.matrix(y)
+      if (!all_equal(nrow(y), nrow(x), nrow_z)) {
+        stop('x, y, and z must have the same number of rows')
+      }
+      model_type <- 'matrix'
     } else {
-      stop("y must be a matrix or data.frame")
+      if (is.numeric(y)) {
+        if (all_equal(length(y), nrow(x), nrow_z)) {
+          model_type <- 'flat'
+          if (is.null(bins)) {
+            stop('bins must be provided if the response variable is flattened')
+          }
+        } else {
+          stop('length of y must be equal to the number of rows in x and z')
+        }
+      } else {
+        stop('y must be a numeric matrix, vector, or data.frame')
+      }
     }
-  }
+  } else {
+    if (!all_equal(nrow(y), nrow(x), nrow_z)) {
+      stop("x, y, and z must have the same number of rows")
+    }
+    model_type <- 'matrix'
+  } 
   if (!is.matrix(x)) {
     if (is.data.frame(x)) {
       classes <- apply(x, 2, class)
@@ -238,29 +255,41 @@ greta_fda.default <- function (y, x, z = NULL,
   spline_set[names(spline_settings)] <- spline_settings
   
   # prepare model
-  greta_model <- build_greta_fda(y, x, z,
-                                 family,
-                                 link,
-                                 bins,
-                                 priors,
-                                 errors,
-                                 spline_set,
-                                 ...)
-  
+  if (model_type == 'matrix') {
+    greta_model <- build_greta_fda_matrix(y, x, z,
+                                          family,
+                                          link,
+                                          bins,
+                                          priors,
+                                          errors,
+                                          spline_set,
+                                          ...)
+  }
+  if (model_type == 'flat') {
+    greta_model <- build_greta_fda_flat(y, x, z,
+                                        family,
+                                        link,
+                                        bins,
+                                        priors,
+                                        errors,
+                                        spline_set,
+                                        ...)
+  }
+
   # add initial values if not specified
   greta_set$initial_values <- rep(0.0, length(greta_model$dag$example_parameters()))
   
   # sample from greta model
-  samples <- greta::mcmc(greta_model$greta_model,
-                         sampler = greta_set$sampler,
-                         n_samples = greta_set$n_samples,
-                         thin = greta_set$thin,
-                         warmup = greta_set$warmup,
-                         chains = greta_set$chains,
-                         verbose = greta_set$verbose,
-                         pb_update = greta_set$pb_update,
-                         initial_values = greta_set$initial_values)
-  
+  samples <- mcmc(greta_model$greta_model,
+                  sampler = greta_set$sampler,
+                  n_samples = greta_set$n_samples,
+                  thin = greta_set$thin,
+                  warmup = greta_set$warmup,
+                  chains = greta_set$chains,
+                  verbose = greta_set$verbose,
+                  pb_update = greta_set$pb_update,
+                  initial_values = greta_set$initial_values)
+
   # set link function (to be added)
   if (is.null(link)) {
     if (family == 'gaussian') {
@@ -279,9 +308,9 @@ greta_fda.default <- function (y, x, z = NULL,
                 data = list(y = y,
                             x = x,
                             z = z,
-                            bins = samples$bins),
+                            bins = greta_model$bins),
                 family = family,
-                spline_basis = samples$spline_basis,
+                spline_basis = greta_model$spline_basis,
                 greta_settings = greta_set,
                 spline_settings = spline_set,
                 link = link,
@@ -306,7 +335,7 @@ greta_fda.default <- function (y, x, z = NULL,
 #' }
 
 is.greta_fda <- function (model) {
-  inherits(x, 'greta_fda')
+  inherits(model, 'greta_fda')
 }
 
 #' @rdname greta_fda
@@ -391,18 +420,25 @@ coef.greta_fda <- function (x, ...) {
   
   # extract coefficients
   param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
+  alpha <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
+                                                      nrow = 1))
   beta <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
-                                                      nrow = ncol(x$data$x)))
+                                                     nrow = ncol(x$data$x)))
+  alpha_mean <- array(NA, dim = c(nrow(alpha[[1]]), ncol(alpha[[1]]), length(alpha)))
   beta_mean <- array(NA, dim = c(nrow(beta[[1]]), ncol(beta[[1]]), length(beta)))
   for (i in seq_along(beta)) {
+    alpha_mean[, , i] <- alpha[[i]]
     beta_mean[, , i] <- beta[[i]]
   }
+  alpha_mean <- apply(alpha_mean, c(1, 2), mean)
   beta_mean <- apply(beta_mean, c(1, 2), mean)
+  alpha_link <- alpha_mean %*% as.matrix(x$spline_basis)
   beta_link <- beta_mean %*% as.matrix(x$spline_basis)
-
-  # return some summary of this
-  list(beta = beta_link)
   
+  # return some summary of this
+  list(alpha = alpha_link,
+       beta = beta_link)
+
 }
 
 #' @rdname greta_fda
@@ -455,10 +491,10 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
   coefs <- coef(x)
   
   # predict outputs
-  out <- newdata$x %*% coefs$beta
+  out <- coefs$alpha + newdata$x %*% coefs$beta
   
   # add random effects based on re.form
-
+  
   # set link function
   
   
@@ -468,15 +504,15 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
 }
 
 
-# internal function: create greta model from input data
-build_greta_fda <- function (y, x, z,
-                             family,
-                             link,
-                             bins,
-                             priors,
-                             errors, 
-                             spline_settings, ...) {
-  
+# internal function: create greta model from matrix input data
+build_greta_fda_matrix <- function (y, x, z,
+                                    family,
+                                    link,
+                                    bins,
+                                    priors,
+                                    errors, 
+                                    spline_settings, ...) {
+
   # pull out index counters
   n <- nrow(y)
   nj <- ncol(y)
@@ -490,6 +526,10 @@ build_greta_fda <- function (y, x, z,
   # x <- greta::as_data(x)
   # y <- greta::as_data(y)
 
+  # convert x and y to greta arrays
+  x <- greta::as_data(x)
+  y <- greta::as_data(y) 
+  
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
     bins <- seq_len(nj)
@@ -503,7 +543,7 @@ build_greta_fda <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  spline_basis <- t(spline_basis)
+  spline_basis <- greta::as_data(t(spline_basis))
   
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
@@ -553,27 +593,140 @@ build_greta_fda <- function (y, x, z,
     stop("family must be 'gaussian' or 'poisson'")
   }
   if (family == 'gaussian') {
-    distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
+    greta::distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
   }
   if (family == 'poisson') {
-    distribution(y) <- greta::poisson(lambda = exp(mu))
-  }
+    greta::distribution(y) <- greta::poisson(lambda = exp(mu))
+  }  
   if (family == 'binomial') {
-    distribution(y) <- greta::binomial(size = 1,
-                                       prob = greta::icloglog(mu))
-  }
+    greta::distribution(y) <- greta::binomial(size = 1,
+                                              prob = greta::icloglog(mu))
+  } 
   
   # define model
   if (!is.null(z)) {
-    greta_model <- greta::model(mu, alpha, beta,
-                                sigma_main, sigma_bins, sigma_gamma,
+    gamma_vec <- do.call('c', gamma)
+    greta_model <- greta::model(mu,
+                                alpha, beta, gamma_vec,
+                                sigma_gamma, sigma_main, sigma_bins,
                                 ...)
   } else {
-    greta_model <- greta::model(mu, alpha, beta,
+    greta_model <- greta::model(mu,
+                                alpha, beta,
                                 sigma_main, sigma_bins,
                                 ...)
   }
 
+  # return model
+  list(greta_model = greta_model,
+       spline_basis = spline_basis,
+       bins = bins)
+  
+}
+
+# internal function: create greta model from flattened input data
+build_greta_fda_flat <- function (y, x, z,
+                                  family,
+                                  link,
+                                  bins,
+                                  priors,
+                                  errors, 
+                                  spline_settings, ...) {
+  
+  # pull out index counters
+  n <- nrow(y)
+  nj <- ncol(y)
+  nk <- ncol(x)
+  if (!is.null(z)) {
+    nt <- ncol(z)
+    ngroup <- apply(z, 2, max)
+  }
+  
+  # convert x and y to greta arrays
+  x <- greta::as_data(x)
+  y <- greta::as_data(y) 
+
+  # set up spline settings (nspline, nknots, degree)
+  boundary_knots <- c(0, max(bins) + 1)
+  np <- spline_settings$df
+  
+  # create spline basis
+  spline_basis <- get(spline_settings$basis)(bins,
+                                             df = np,
+                                             degree = spline_settings$degree,
+                                             intercept = FALSE,
+                                             Boundary.knots = boundary_knots)
+  spline_basis <- greta::as_data(t(spline_basis))
+  
+  # setup priors
+  sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
+  sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
+  if (!is.null(z)) {
+    sigma_gamma <- greta::uniform(min = 0.0, max = 5.0, dim = c(nt, np))
+  }
+  
+  # setup parameters
+  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
+  beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
+  
+  if (!is.null(z)) {
+    gamma <- vector('list', length = nt)
+    for (rand in seq_len(nt)) {
+      gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
+                                     sd = greta::greta_array(rep(sigma_gamma[rand, ], ngroup[rand]),
+                                                             dim = c(ngroup[rand], np)),
+                                     dim = c(ngroup[rand], np))
+    }
+  }
+
+  # define linear predictor
+  mu <- t(alpha %*% spline_basis)
+  for (i in seq_len(nk)) {
+    mu <- mu + (x[, i] * t(beta[i, ] %*% spline_basis))
+  }
+  if (!is.null(z)) {
+    for (rand in seq_len(nt)) {
+      mu <- mu + t(gamma[[rand]][z[, rand], ] %*% spline_basis)
+    }
+  }
+  
+  # add error structure
+  if (errors == 'iid') {
+    bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
+  } else {
+    stop("errors must be 'iid' in a model with flattened response variable")
+  }
+  mu <- sweep(mu, 2, bin_errors, '+')
+  
+  # setup likelihood
+  if (!(family %in% c('gaussian', 'poisson', 'binomial'))) {
+    stop("family must be 'gaussian' or 'poisson'")
+  }
+  if (family == 'gaussian') {
+    greta::distribution(y) <- greta::normal(mean = mu, sd = sigma_main)
+  }
+  if (family == 'poisson') {
+    greta::distribution(y) <- greta::poisson(lambda = exp(mu))
+  }  
+  if (family == 'binomial') {
+    greta::distribution(y) <- greta::binomial(size = 1,
+                                              prob = greta::icloglog(mu))
+  } 
+  
+  # define model
+  if (!is.null(z)) {
+    gamma_vec <- do.call('c', gamma)
+    greta_model <- greta::model(mu,
+                                alpha, beta, gamma_vec,
+                                sigma_gamma, sigma_main, sigma_bins,
+                                ...)
+  } else {
+    greta_model <- greta::model(mu,
+                                alpha, beta,
+                                sigma_main, sigma_bins,
+                                ...)
+  }
+  
   # return model
   list(greta_model = greta_model,
        spline_basis = spline_basis,
