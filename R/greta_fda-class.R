@@ -608,13 +608,11 @@ build_greta_fda_matrix <- function (y, x, z,
     gamma_vec <- do.call('c', gamma)
     greta_model <- greta::model(mu,
                                 alpha, beta, gamma_vec,
-                                sigma_gamma, sigma_main, sigma_bins,
-                                ...)
+                                sigma_gamma, sigma_main, sigma_bins)
   } else {
     greta_model <- greta::model(mu,
                                 alpha, beta,
-                                sigma_main, sigma_bins,
-                                ...)
+                                sigma_main, sigma_bins)
   }
 
   # return model
@@ -680,15 +678,25 @@ build_greta_fda_flat <- function (y, x, z,
     }
   }
 
+  # ## USE greta:::apply_rows() (apply(x, 1, FUN))
+  # rows <- seq_len(nrow(X))
+  # input_list <- lapply(rows, function(i) X[i, ])
+  # output_list <- lapply(input_list, FUN, ...)
+  # output <- do.call(rbind, output_list)
+  # output  
+  
   # define linear predictor
   mu <- t(alpha %*% spline_basis)
+  
+  # use colSums/rowSums
+  
   for (i in seq_len(nk)) {
     mu <- mu + (x[, i] * t(beta[i, ] %*% spline_basis))
   }
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       for (sp in seq_len(np)) {
-        mu <- mu + (gamma[[rand]][z[, rand], sp] * t(spline_basis[sp, ]))
+        mu <- mu + (gamma[[rand]][z[, rand], sp] * spline_basis[sp, ])
       }
     }
   }
@@ -721,13 +729,11 @@ build_greta_fda_flat <- function (y, x, z,
     gamma_vec <- do.call('c', gamma)
     greta_model <- greta::model(mu,
                                 alpha, beta, gamma_vec,
-                                sigma_gamma, sigma_main, sigma_bins,
-                                ...)
+                                sigma_gamma, sigma_main, sigma_bins)
   } else {
     greta_model <- greta::model(mu,
                                 alpha, beta,
-                                sigma_main, sigma_bins,
-                                ...)
+                                sigma_main, sigma_bins)
   }
   
   # return model
