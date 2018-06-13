@@ -29,15 +29,15 @@ is.greta_fda(model)
 
 \method{plot}{greta_fda}(x, ...)
 
-\method{summary}{greta_fda}(x, ...)
+\method{summary}{greta_fda}(object, ...)
 
-\method{coef}{greta_fda}(x, ..., type = c("link", "response"),
+\method{coef}{greta_fda}(object, ..., type = c("link", "response"),
   probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975))
 
-\method{fitted}{greta_fda}(x, ..., type = c("link", "response"),
+\method{fitted}{greta_fda}(object, ..., type = c("link", "response"),
   probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975))
 
-\method{predict}{greta_fda}(x, ..., newdata = NULL, type = c("link",
+\method{predict}{greta_fda}(object, ..., newdata = NULL, type = c("link",
   "response"), re.form = NULL, fun = NULL)
 }
 \arguments{
@@ -68,6 +68,8 @@ is.greta_fda(model)
 \item{z}{a \code{matrix} or \code{data.frame} of random effects variables}
 
 \item{model}{a fitted \code{greta_fda} model}
+
+\item{object}{a fitted \code{greta_fda} model}
 
 \item{type}{for fitted and predict; link or response scale?}
 

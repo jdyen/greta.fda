@@ -17,6 +17,7 @@
 #' @param priors a named list of prior distributions in the format of \link[greta]{distributions}
 #' @param errors a character denoting the type of errors in a matrix model; currently only 'iid' and 'ar1' are implemented
 #' @param model a fitted \code{greta_fda} model
+#' @param object a fitted \code{greta_fda} model
 #' @param type for fitted and predict; link or response scale?
 #' @param probs for fitted; which quantiles to calculate?
 #' @param newdata a list of data for which posterior predictions should be generated
@@ -390,7 +391,7 @@ plot.greta_fda <- function (x, ...) {
 #' summary(x)
 #' }
 
-summary.greta_fda <- function (x, ...) {
+summary.greta_fda <- function (object, ...) {
   
   # calculate Bayesian R2
   # y <- x$data$y
@@ -399,7 +400,7 @@ summary.greta_fda <- function (x, ...) {
   # var_yhat <- apply(yhat, 1, var)
   # var_e <- apply(e, 1, var)
   # bayes_R2 <- var_yhat / (var_yhat + var_e)
-  bayes_r2 <- NULL
+  bayes_R2 <- NULL
 
   # calculate rhat
   rhat <- NULL
@@ -423,7 +424,7 @@ summary.greta_fda <- function (x, ...) {
 #' coef(x)
 #' }
 
-coef.greta_fda <- function (x, 
+coef.greta_fda <- function (object, 
                             ...,
                             type = c('link', 'response'),
                             probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)) {
@@ -479,7 +480,7 @@ coef.greta_fda <- function (x,
 #' fitted(x)
 #' }
 
-fitted.greta_fda <- function (x, 
+fitted.greta_fda <- function (object, 
                               ...,
                               type = c('link', 'response'),
                               probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)) {
@@ -524,7 +525,7 @@ fitted.greta_fda <- function (x,
 #' predict(x)
 #' }
 
-predict.greta_fda <- function (x, ..., newdata = NULL, type = c('link', 'response'),
+predict.greta_fda <- function (object, ..., newdata = NULL, type = c('link', 'response'),
                                re.form = NULL, fun = NULL) {
   
   # fill data (check lme4 method for this)
