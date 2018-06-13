@@ -4,9 +4,14 @@ warnings_are_errors: false
 dist: trusty
 
 r_packages:
+  - reticulate
+  - tensorflow
+  - R6
+  - coda
   - greta
   - splines  
   - stats
+  - lme4
   - graphics
   - abind
   - rmarkdown
@@ -16,11 +21,25 @@ r_packages:
 
 cache:
   packages: true
+  directories:
+    - $HOME/.cache/pip
 
 addons:
   apt:
     sources:
       ubuntu-toolchain-r-test
+    packages:
+      - libmagick++-dev
+      - wget
+      - libatlas3gf-base
+      - libatlas-dev
+      - python-joblib
+      - python-dev
+      - libv8-dev
+
+before_install:
+  - pip install --user numpy
+  - pip install --user tensorflow
 
 after_success:
   - Rscript -e 'covr::codecov(type = "all")'

@@ -61,7 +61,7 @@ is.greta_fda(model)
 
 \item{priors}{a named list of prior distributions in the format of \link[greta]{distributions}}
 
-\item{errors}{a character denoting the type of errors; currently only 'iid' is implemented}
+\item{errors}{a character denoting the type of errors in a matrix model; currently only 'iid' and 'ar1' are implemented}
 
 \item{x}{a \code{matrix} or \code{data.frame} of predictor variables}
 
@@ -72,6 +72,12 @@ is.greta_fda(model)
 \item{type}{for fitted and predict; link or response scale?}
 
 \item{probs}{for fitted; which quantiles to calculate?}
+
+\item{newdata}{a list of data for which posterior predictions should be generated}
+
+\item{re.form}{form of random effects in posterior predictions (not implemented)}
+
+\item{fun}{function to apply to posterior predictions}
 }
 \value{
 An object of class \code{greta_fda}, which has associated `print`, `plot`, and `summary` methods

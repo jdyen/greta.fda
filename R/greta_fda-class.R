@@ -15,10 +15,13 @@
 #' @param greta_settings a named list of values to pass to the inference method (see \link[greta]{inference} for details)
 #' @param spline_settings a named list of settings to pass to the spline function (see \link[splines]{bs} for details)
 #' @param priors a named list of prior distributions in the format of \link[greta]{distributions}
-#' @param errors a character denoting the type of errors; currently only 'iid' is implemented
+#' @param errors a character denoting the type of errors in a matrix model; currently only 'iid' and 'ar1' are implemented
 #' @param model a fitted \code{greta_fda} model
 #' @param type for fitted and predict; link or response scale?
 #' @param probs for fitted; which quantiles to calculate?
+#' @param newdata a list of data for which posterior predictions should be generated
+#' @param re.form form of random effects in posterior predictions (not implemented)
+#' @param fun function to apply to posterior predictions
 #' @param ... further arguments passed to or from other methods
 #'
 #' @return An object of class \code{greta_fda}, which has associated `print`, `plot`, and `summary` methods
@@ -27,7 +30,8 @@
 #' 
 #' @import greta
 #' @importFrom splines bs
-#' @importFrom stats terms.formula delete.response
+#' @importFrom graphics plot
+#' @importFrom stats terms.formula delete.response fitted quantile as.formula coef model.matrix
 #' @importFrom abind abind
 #' 
 #' @examples
@@ -395,6 +399,7 @@ summary.greta_fda <- function (x, ...) {
   # var_yhat <- apply(yhat, 1, var)
   # var_e <- apply(e, 1, var)
   # bayes_R2 <- var_yhat / (var_yhat + var_e)
+  bayes_r2 <- NULL
 
   # calculate rhat
   rhat <- NULL
@@ -583,15 +588,21 @@ build_greta_fda_matrix <- function (y, x, z,
   spline_basis <- greta::as_data(t(spline_basis))
 
   # setup priors
-  sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
-  sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
+  prior_set <- list(alpha_mean = 0.0,
+                    alpha_sd = 1.0,
+                    beta_mean = 0.0,
+                    beta_sd = 1.0,
+                    sigma_max = 5.0)
+  prior_set[names(priors)] <- priors
+  sigma_main <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = 1)
+  sigma_bins <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = nj)
   if (!is.null(z)) {
-    sigma_gamma <- greta::uniform(min = 0.0, max = 5.0, dim = c(nt, np))
+    sigma_gamma <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = c(nt, np))
   }
   
   # setup parameters
-  alpha <- greta::normal(mean = 0.0, sd = 1.0, dim = c(1, np))
-  beta <- greta::normal(mean = 0.0, sd = 1.0, dim = c(nk, np))
+  alpha <- greta::normal(mean = prior_set$alpha_mean, sd = prior_set$alpha_sd, dim = c(1, np))
+  beta <- greta::normal(mean = prior_set$beta_mean, sd = prior_set$beta_sd, dim = c(nk, np))
   
   if (!is.null(z)) {
     gamma <- vector('list', length = nt)
@@ -719,14 +730,6 @@ build_greta_fda_flat <- function (y, x, z,
       mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
     }
   }
-  
-  # # add error structure
-  # if (errors == 'iid') {
-  #   bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
-  # } else {
-  #   stop("errors must be 'iid' in a model with flattened response variable")
-  # }
-  # mu <- sweep(mu, 2, bin_errors, '+')
   
   # setup likelihood
   if (!(family %in% c('gaussian', 'poisson', 'binomial'))) {
