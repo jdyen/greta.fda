@@ -17,6 +17,8 @@
 #' @param priors a named list of prior distributions in the format of \link[greta]{distributions}
 #' @param errors a character denoting the type of errors; currently only 'iid' is implemented
 #' @param model a fitted \code{greta_fda} model
+#' @param type for fitted and predict; link or response scale?
+#' @param probs for fitted; which quantiles to calculate?
 #' @param ... further arguments passed to or from other methods
 #'
 #' @return An object of class \code{greta_fda}, which has associated `print`, `plot`, and `summary` methods
@@ -26,6 +28,7 @@
 #' @import greta
 #' @importFrom splines bs
 #' @importFrom stats terms.formula delete.response
+#' @importFrom abind abind
 #' 
 #' @examples
 #' 
@@ -415,28 +418,47 @@ summary.greta_fda <- function (x, ...) {
 #' coef(x)
 #' }
 
-coef.greta_fda <- function (x, ...) {
+coef.greta_fda <- function (x, 
+                            ...,
+                            type = c('link', 'response'),
+                            probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)) {
   
   # extract coefficients
-  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
-  alpha <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
+  param_mean <- lapply(x$samples, function(z) apply(z, 2, mean))
+  param_quants <- lapply(x$samples, function(z) t(apply(z, 2, quantile, p = probs)))
+  alpha_mean <- lapply(param_mean, function(z) matrix(z[grep('alpha', names(z))],
                                                       nrow = 1))
-  beta <- lapply(param_estimates, function(z) matrix(z[grep('beta', names(z))],
-                                                     nrow = ncol(x$data$x)))
-  alpha_mean <- array(NA, dim = c(nrow(alpha[[1]]), ncol(alpha[[1]]), length(alpha)))
-  beta_mean <- array(NA, dim = c(nrow(beta[[1]]), ncol(beta[[1]]), length(beta)))
-  for (i in seq_along(beta)) {
-    alpha_mean[, , i] <- alpha[[i]]
-    beta_mean[, , i] <- beta[[i]]
+  alpha_mean <- abind::abind(alpha_mean, along = 3)
+  alpha_quants <- lapply(param_quants, function(z) z[grep('alpha', rownames(z)), ])
+  alpha_quants <- abind::abind(alpha_quants, along = 3)
+  beta_mean <- lapply(param_mean, function(z) matrix(z[grep('beta', names(z))],
+                                                     nrow = ncol(x$data$x)))  
+  beta_mean <- abind::abind(beta_mean, along = 3)
+  beta_quants <- lapply(param_quants, function(z) array(z[grep('beta', rownames(z)), ],
+                                                         dim = c(ncol(x$data$x),
+                                                                 nrow(x$spline_basis),
+                                                                 length(probs))))
+  beta_quants <- abind::abind(beta_quants, along = 4)
+  alpha <- apply(alpha_mean, c(1, 2), mean)
+  beta <- apply(beta_mean, c(1, 2), mean)
+  alpha_quants <- apply(alpha_quants, c(1, 2), mean)
+  beta_quants <- apply(beta_quants, c(1, 2, 3), mean)
+  alpha_link <- alpha %*% as.matrix(x$spline_basis)
+  beta_link <- beta %*% as.matrix(x$spline_basis)
+  alpha_quants_link <- t(as.matrix(x$spline_basis)) %*% alpha_quants
+  beta_quants_link <- array(NA, dim = c(ncol(x$spline_basis),
+                                        ncol(x$data$x),
+                                        length(probs)))
+  for (i in seq_len(dim(beta_quants)[3])) {
+    beta_quants_link[, , i] <- t(as.matrix(x$spline_basis)) %*% t(beta_quants[, , i])
   }
-  alpha_mean <- apply(alpha_mean, c(1, 2), mean)
-  beta_mean <- apply(beta_mean, c(1, 2), mean)
-  alpha_link <- alpha_mean %*% as.matrix(x$spline_basis)
-  beta_link <- beta_mean %*% as.matrix(x$spline_basis)
   
   # return some summary of this
-  list(alpha = alpha_link,
-       beta = beta_link)
+  list(alpha_mean = alpha_link,
+       beta_mean = beta_link,
+       alpha_quants = alpha_quants_link,
+       beta_quants = beta_quants_link,
+       bins = x$data$bins)
 
 }
 
@@ -452,17 +474,36 @@ coef.greta_fda <- function (x, ...) {
 #' fitted(x)
 #' }
 
-fitted.greta_fda <- function (x, ...) {
+fitted.greta_fda <- function (x, 
+                              ...,
+                              type = c('link', 'response'),
+                              probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)) {
   
   # calculate fitted values
-  param_estimates <- lapply(x$samples, function(z) apply(z, 2, mean))
-  fitted <- lapply(param_estimates,
-                   function(z) z[grep('mu', names(param_estimates[[1]]))])
-  fitted <- do.call('rbind', fitted)
-  fitted <- apply(fitted, 2, mean)
-
-  # return some summary of fitted values
-  matrix(fitted, ncol = ncol(x$data$y))
+  param_mean <- lapply(x$samples, function(z) apply(z, 2, mean))
+  param_quants <- lapply(x$samples, function(z) t(apply(z, 2, quantile, p = probs)))
+  fitted_mean <- lapply(param_mean,
+                        function(z) z[grep('mu', names(param_mean[[1]]))])
+  fitted_mean <- do.call('rbind', fitted_mean)
+  fitted_mean <- apply(fitted_mean, 2, mean)
+  fitted_quants <- lapply(param_quants,
+                        function(z) z[grep('mu', rownames(param_quants[[1]])), ])
+  fitted_quants <- abind::abind(fitted_quants, along = 3)
+  fitted_quants <- apply(fitted_quants, c(1, 2), mean)
+  
+  # work out class of response variable
+  if (is.matrix(x$data$y)) {
+    dim_set <- ncol(x$data$y)
+  } else {
+    dim_set <- 1
+  }
+  
+  # reformat mean to same dims as response
+  fitted_mean <- matrix(fitted, ncol = dim_set)
+  
+  # return outputs
+  list(mean = fitted_mean,
+       quantiles = fitted_quants)
   
 }
 
@@ -478,7 +519,7 @@ fitted.greta_fda <- function (x, ...) {
 #' predict(x)
 #' }
 
-predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "response"),
+predict.greta_fda <- function (x, ..., newdata = NULL, type = c('link', 'response'),
                                re.form = NULL, fun = NULL) {
   
   # fill data (check lme4 method for this)
@@ -490,7 +531,8 @@ predict.greta_fda <- function (x, ..., newdata = NULL, type = c("link", "respons
   coefs <- coef(x)
   
   # predict outputs
-  out <- coefs$alpha + newdata$x %*% coefs$beta
+  out <- NULL
+  #out <- coefs$alpha + newdata$x %*% coefs$beta
   
   # add random effects based on re.form
   

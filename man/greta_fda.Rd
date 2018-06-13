@@ -31,9 +31,11 @@ is.greta_fda(model)
 
 \method{summary}{greta_fda}(x, ...)
 
-\method{coef}{greta_fda}(x, ...)
+\method{coef}{greta_fda}(x, ..., type = c("link", "response"),
+  probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975))
 
-\method{fitted}{greta_fda}(x, ...)
+\method{fitted}{greta_fda}(x, ..., type = c("link", "response"),
+  probs = c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975))
 
 \method{predict}{greta_fda}(x, ..., newdata = NULL, type = c("link",
   "response"), re.form = NULL, fun = NULL)
@@ -49,11 +51,7 @@ is.greta_fda(model)
 
 \item{family}{a GLM family passed as a \code{character}, see \link[stats]{family} (currently only gaussian (default) and poisson families are implemented)}
 
-<<<<<<< HEAD
 \item{link}{link function to be used for model family, see \link[stats]{family} for details (currently not implemented)}
-=======
-\item{link}{a link function for the specified GLM family, see \link[stats]{family} for details}
->>>>>>> working
 
 \item{bins}{a vector of values at which the response variable is recorded}
 
@@ -70,6 +68,10 @@ is.greta_fda(model)
 \item{z}{a \code{matrix} or \code{data.frame} of random effects variables}
 
 \item{model}{a fitted \code{greta_fda} model}
+
+\item{type}{for fitted and predict; link or response scale?}
+
+\item{probs}{for fitted; which quantiles to calculate?}
 }
 \value{
 An object of class \code{greta_fda}, which has associated `print`, `plot`, and `summary` methods
