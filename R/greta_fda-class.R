@@ -127,7 +127,7 @@ greta_fda.formula <- function (formula, data,
                              greta_settings = greta_settings,
                              spline_settings = spline_settings,
                              priors = priors,
-                             errors,
+                             errors = errors,
                              ...)
   
   # add formula to fitted model
@@ -521,13 +521,9 @@ build_greta_fda_matrix <- function (y, x, z,
     ngroup <- apply(z, 2, max)
   }
   
-  # convert data to greta_array
-  # x <- greta::as_data(x)
-  # y <- greta::as_data(y)
-
   # convert x and y to greta arrays
-  # x <- greta::as_data(x)
-  # y <- greta::as_data(y) 
+  x <- greta::as_data(x)
+  y <- greta::as_data(y)
   
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
@@ -542,9 +538,8 @@ build_greta_fda_matrix <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  # spline_basis <- greta::as_data(t(spline_basis))
-  spline_basis <- t(spline_basis)
-  
+  spline_basis <- greta::as_data(t(spline_basis))
+
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
   sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
@@ -567,7 +562,7 @@ build_greta_fda_matrix <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), "+")
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
@@ -641,8 +636,8 @@ build_greta_fda_flat <- function (y, x, z,
   }
   
   # convert x and y to greta arrays
-  # x <- greta::as_data(x)
-  # y <- greta::as_data(y) 
+  x <- greta::as_data(x)
+  y <- greta::as_data(y)
 
   # set up spline settings (nspline, nknots, degree)
   boundary_knots <- c(0, max(bins) + 1)
@@ -654,9 +649,8 @@ build_greta_fda_flat <- function (y, x, z,
                                              degree = spline_settings$degree,
                                              intercept = FALSE,
                                              Boundary.knots = boundary_knots)
-  # spline_basis <- greta::as_data(t(spline_basis))
-  spline_basis <- t(spline_basis)
-  
+  spline_basis <- greta::as_data(t(spline_basis))
+
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
   sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
@@ -678,26 +672,11 @@ build_greta_fda_flat <- function (y, x, z,
     }
   }
 
-  # ## USE greta:::apply_rows() (apply(x, 1, FUN))
-  # rows <- seq_len(nrow(X))
-  # input_list <- lapply(rows, function(i) X[i, ])
-  # output_list <- lapply(input_list, FUN, ...)
-  # output <- do.call(rbind, output_list)
-  # output  
-  
   # define linear predictor
-  mu <- t(alpha %*% spline_basis)
-  
-  # use colSums/rowSums
-  
-  for (i in seq_len(nk)) {
-    mu <- mu + (x[, i] * t(beta[i, ] %*% spline_basis))
-  }
+  mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
-      for (sp in seq_len(np)) {
-        mu <- mu + (gamma[[rand]][z[, rand], sp] * spline_basis[sp, ])
-      }
+      mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * spline_basis)
     }
   }
   
@@ -729,11 +708,13 @@ build_greta_fda_flat <- function (y, x, z,
     gamma_vec <- do.call('c', gamma)
     greta_model <- greta::model(mu,
                                 alpha, beta, gamma_vec,
-                                sigma_gamma, sigma_main, sigma_bins)
+                                sigma_gamma, sigma_main, sigma_bins,
+                                ...)
   } else {
     greta_model <- greta::model(mu,
                                 alpha, beta,
-                                sigma_main, sigma_bins)
+                                sigma_main, sigma_bins,
+                                ...)
   }
   
   # return model
