@@ -18,7 +18,8 @@ Imports:
     greta,
     splines,    
     stats,
-    graphics
+    graphics,
+    abind
 Suggests:
     knitr,
     testthat,
