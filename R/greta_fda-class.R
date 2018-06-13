@@ -216,7 +216,6 @@ greta_fda.default <- function (y, x, z = NULL,
       }
     }
   }
-  x <- x[, -1]
   if (!is.null(z)) {
     if (!is.matrix(z)) {
       if (is.data.frame(z)) {
