@@ -676,7 +676,7 @@ build_greta_fda_flat <- function (y, x, z,
   mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
-      mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * spline_basis)
+      mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
     }
   }
   
