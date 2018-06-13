@@ -303,7 +303,7 @@ greta_fda.default <- function (y, x, z = NULL,
   }
   
   # compile results
-  model <- list(samples = samples$samples,
+  model <- list(samples = samples,
                 data = list(y = y,
                             x = x,
                             z = z,
