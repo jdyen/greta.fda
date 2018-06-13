@@ -627,8 +627,7 @@ build_greta_fda_flat <- function (y, x, z,
                                   spline_settings, ...) {
   
   # pull out index counters
-  n <- nrow(y)
-  nj <- ncol(y)
+  n <- length(y)
   nk <- ncol(x)
   if (!is.null(z)) {
     nt <- ncol(z)
@@ -653,7 +652,6 @@ build_greta_fda_flat <- function (y, x, z,
 
   # setup priors
   sigma_main <- greta::uniform(min = 0.0, max = 5.0, dim = 1)
-  sigma_bins <- greta::uniform(min = 0.0, max = 5.0, dim = nj)
   if (!is.null(z)) {
     sigma_gamma <- greta::uniform(min = 0.0, max = 5.0, dim = c(nt, np))
   }
@@ -680,13 +678,13 @@ build_greta_fda_flat <- function (y, x, z,
     }
   }
   
-  # add error structure
-  if (errors == 'iid') {
-    bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
-  } else {
-    stop("errors must be 'iid' in a model with flattened response variable")
-  }
-  mu <- sweep(mu, 2, bin_errors, '+')
+  # # add error structure
+  # if (errors == 'iid') {
+  #   bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
+  # } else {
+  #   stop("errors must be 'iid' in a model with flattened response variable")
+  # }
+  # mu <- sweep(mu, 2, bin_errors, '+')
   
   # setup likelihood
   if (!(family %in% c('gaussian', 'poisson', 'binomial'))) {
@@ -708,12 +706,12 @@ build_greta_fda_flat <- function (y, x, z,
     gamma_vec <- do.call('c', gamma)
     greta_model <- greta::model(mu,
                                 alpha, beta, gamma_vec,
-                                sigma_gamma, sigma_main, sigma_bins,
+                                sigma_gamma, sigma_main,
                                 ...)
   } else {
     greta_model <- greta::model(mu,
                                 alpha, beta,
-                                sigma_main, sigma_bins,
+                                sigma_main,
                                 ...)
   }
   
