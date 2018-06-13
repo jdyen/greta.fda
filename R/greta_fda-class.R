@@ -640,7 +640,7 @@ build_greta_fda_flat <- function (y, x, z,
   y <- greta::as_data(y) 
 
   # set up spline settings (nspline, nknots, degree)
-  boundary_knots <- c(0, (nj + 1))
+  boundary_knots <- c(0, max(bins) + 1)
   np <- spline_settings$df
   
   # create spline basis
