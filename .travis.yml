@@ -19,7 +19,7 @@ r_packages:
   - knitr
 
 r_github_packages:
-  - greta-dev/greta@dev
+  - greta-dev/gretatree/dev
 
 cache:
   packages: true
