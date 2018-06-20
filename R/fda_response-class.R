@@ -23,29 +23,27 @@
 #' 
 #' @import greta
 #' @importFrom splines bs
-#' @importFrom graphics plot
-#' @importFrom stats terms.formula delete.response fitted quantile as.formula coef model.matrix
-#' @importFrom abind abind
+#' @importFrom stats terms.formula delete.response as.formula model.matrix
 #' 
 #' @examples
 #' 
 #' library(greta.fda)
 #' 
 #' # fit an example model
-#' mu_fda <- fda_response(y ~ x1 + x2 + (1 | z1),
-#'                        data = example_fda_data,
-#'                        priors = list(alpha_mean = 0,
-#'                                      alpha_sd = 1,
-#'                                      beta_mean = 0,
-#'                                      beta_sd = 1,
-#'                                      sigma_max = 5))
+#' fda_response <- fda_response(y ~ x1 + x2 + (1 | z1),
+#'                              data = example_fda_data,
+#'                              priors = list(alpha_mean = 0,
+#'                                            alpha_sd = 1,
+#'                                            beta_mean = 0,
+#'                                            beta_sd = 1,
+#'                                            sigma_max = 5))
 #'                         
 #' \dontrun{                 
-#' # summarise fitted model
-#' sigma_main <- uniform(min = 0.0, max = 5.0, dim = 1)
-#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_main)
+#' # fit a greta model
+#' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
+#' distribution(example_fda_data$y) <- normal(fda_response$mu, sd = sigma_response)
 #' 
-#' greta_model <- model(mu_fda)
+#' greta_model <- with(fda_response, model(mu, alpha, beta, sigma_main, sigma_response))
 #' }
 
 fda_response <- function (y, ...) {
@@ -73,8 +71,8 @@ fda_response <- function (y, ...) {
 #'                                      beta_sd = 1,
 #'                                      sigma_max = 5))
 #'                                      
-#' sigma_main <- uniform(min = 0.0, max = 5.0, dim = 1)
-#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_main)
+#' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
+#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
 #' 
 #' greta_model <- model(mu_fda)
 #' 
@@ -162,8 +160,8 @@ fda_response.formula <- function (formula, data,
 #'                                      beta_sd = 1,
 #'                                      sigma_max = 5))
 #'                                      
-#' sigma_main <- uniform(min = 0.0, max = 5.0, dim = 1)
-#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_main)
+#' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
+#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
 #' 
 #' greta_model <- model(mu_fda)
 #' 
@@ -255,35 +253,23 @@ fda_response.default <- function (y, x, z = NULL,
                      degree = 3)
   spline_set[names(spline_settings)] <- spline_settings
   
-  # prepare model
+  # prepare greta_array
   if (model_type == 'matrix') {
-    fda_greta_array <- build_fda_response_matrix(y, x, z,
-                                                 bins,
-                                                 priors,
-                                                 errors,
-                                                 spline_set,
-                                                 ...)
+    fda_response <- build_fda_response_matrix(y, x, z,
+                                              bins,
+                                              priors,
+                                              errors,
+                                              spline_set,
+                                              ...)
   }
   if (model_type == 'flat') {
-    fda_greta_array <- build_fda_response_flat(y, x, z,
-                                               bins,
-                                               priors,
-                                               errors,
-                                               spline_set,
-                                               ...)
-  } 
-  
-  # compile results
-  fda_response <- list(greta_array = fda_greta_array,
-                       data = list(y = y,
-                                   x = x,
-                                   z = z,
-                                   bins = greta_model$bins),
-                       spline_basis = greta_model$spline_basis,
-                       spline_settings = spline_set,
-                       formula = NULL,
-                       priors = priors, 
-                       errors = errors)
+    fda_response <- build_fda_response_flat(y, x, z,
+                                            bins,
+                                            priors,
+                                            errors,
+                                            spline_set,
+                                            ...)
+  }  
   
   as.fda_response(fda_response)
   
@@ -338,7 +324,7 @@ summary.fda_response <- function (object, ...) {
 }
 
 
-# internal function: create greta model from matrix input data
+# internal function: create greta array from matrix input data
 build_fda_response_matrix <- function (y, x, z,
                                        bins,
                                        priors,
@@ -361,8 +347,11 @@ build_fda_response_matrix <- function (y, x, z,
   # set up spline settings (nspline, nknots, degree)
   if (is.null(bins)) {
     bins <- seq_len(nj)
+    max_bound <- nj + 1
+  } else {
+    max_bound <- max(bins) + 1
   }
-  boundary_knots <- c(0, (nj + 1))
+  boundary_knots <- c(0, max_bound)
   np <- spline_settings$df
 
   # create spline basis
@@ -436,12 +425,19 @@ build_fda_response_matrix <- function (y, x, z,
        sigma_main = sigma_main,
        sigma_bins = sigma_bins,
        sigma_gamma = sigma_gamma,
+       bins = bins,
        spline_basis = spline_basis,
-       bins = bins)
+       spline_settings = spline_settings,
+       data = list(y = y,
+                   x = x,
+                   z = z),
+       formula = NULL,
+       priors = prior_set, 
+       errors = errors)
   
 }
 
-# internal function: create greta model from flattened input data
+# internal function: create greta array from flattened input data
 build_fda_response_flat <- function (y, x, z,
                                      bins,
                                      priors,
@@ -516,8 +512,15 @@ build_fda_response_flat <- function (y, x, z,
        sigma_main = sigma_main,
        sigma_bins = sigma_bins,
        sigma_gamma = sigma_gamma,
+       bins = bins,
        spline_basis = spline_basis,
-       bins = bins)
+       spline_settings = spline_settings,
+       data = list(y = y,
+                   x = x,
+                   z = z),
+       formula = NULL,
+       priors = prior_set, 
+       errors = errors)
   
 }
 
