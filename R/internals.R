@@ -1,4 +1,4 @@
-# internal helper functions for trophic R package
+# internal helper functions for greta.fda R package
 
 # set an object class
 as_class <- function (object, name, type = c("function", "list")) {

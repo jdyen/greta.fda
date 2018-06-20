@@ -8,7 +8,6 @@ r_packages:
   - tensorflow
   - R6
   - coda
-  - greta
   - splines  
   - stats
   - lme4
@@ -18,6 +17,9 @@ r_packages:
   - testthat
   - covr
   - knitr
+
+r_github_packages:
+  - greta-dev/greta@dev
 
 cache:
   packages: true

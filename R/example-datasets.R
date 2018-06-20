@@ -6,7 +6,7 @@
 #'
 #' @docType data
 #'
-#' @usage greta_fda_data
+#' @usage example_fda_data
 #'
 #' @format A list with three elements: response matrix (y), covariates (x1, x2), and a grouping variable (z1)
 #'
@@ -14,6 +14,6 @@
 #'
 #' @examples
 #' library(greta.fda)
-#' names(greta_fda_data)
-#' head(greta_fda_data$y)
-"greta_fda_data"
+#' names(example_fda_data)
+#' head(example_fda_data$y)
+'example_fda_data'
