@@ -83,20 +83,20 @@ fda_predictor <- function (x,
   
   # prepare greta_array
   if (model_type == 'matrix') {
-    fda_greta_array <- build_fda_predictor_matrix(x,
-                                                  bins,
-                                                  priors,
-                                                  spline_set,
-                                                  ...)
-  }
-  if (model_type == 'flat') {
-    fda_greta_array <- build_fda_predictor_flat(x,
+    fda_predictor <- build_fda_predictor_matrix(x,
                                                 bins,
                                                 priors,
                                                 spline_set,
                                                 ...)
-  } 
-
+  }
+  if (model_type == 'flat') {
+    fda_predictor <- build_fda_predictor_flat(x,
+                                              bins,
+                                              priors,
+                                              spline_set,
+                                              ...)
+  }  
+  
   as.fda_predictor(fda_predictor)
   
 }
