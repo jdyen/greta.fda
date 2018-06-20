@@ -412,6 +412,7 @@ build_fda_response_matrix <- function (y, x, z,
   }
   mu <- sweep(mu, 2, bin_errors, '+')
   
+  # flatten gamma list (if used)
   gamma_vec <- NULL
   if (!is.null(z)) {
     gamma_vec <- do.call('c', gamma)
@@ -502,6 +503,12 @@ build_fda_response_flat <- function (y, x, z,
     for (rand in seq_len(nt)) {
       mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
     }
+  }
+  
+  # flatten gamma list (if used)
+  gamma_vec <- NULL
+  if (!is.null(z)) {
+    gamma_vec <- do.call('c', gamma)
   }
   
   # return model
