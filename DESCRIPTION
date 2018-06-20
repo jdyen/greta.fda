@@ -17,9 +17,7 @@ Depends:
 Imports:
     greta,
     splines,    
-    stats,
-    graphics,
-    abind
+    stats
 Suggests:
     knitr,
     testthat,
