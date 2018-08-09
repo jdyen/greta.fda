@@ -1,6 +1,6 @@
-### greta.fda is an R package to fit function regression models with greta
+### functional data analysis in R
 
-greta.fda fits function regression models (functional data analysis with a function-valued response variable) using the greta R package to support fully Bayesian inference.
+`greta.fda` is an R package for functional data analysis. `greta.fda` uses the greta R package to support fully Bayesian inference.
 
 For more details on greta, see the [greta website](https://greta-dev.github.io/greta/).
 

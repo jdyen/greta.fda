@@ -271,6 +271,10 @@ fda_response.default <- function (y, x, z = NULL,
                                             ...)
   }  
   
+  # add variable names to fda_response object
+  fda_response$var_names <- list(x = colnames(x),
+                                 z = colnames(z))
+  
   as.fda_response(fda_response)
   
 }
