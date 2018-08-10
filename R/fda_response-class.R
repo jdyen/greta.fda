@@ -119,7 +119,8 @@ fda_response.formula <- function (formula, data,
   
   # create model matrix
   if (length(fixed_vars)) {
-    x <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(full_var_list_fixed, collapse = " + "))), data = x_tmp)
+    x <- model.matrix(as.formula(paste0("~", paste(full_var_list_fixed, collapse = " + "))), data = x_tmp)
+    x <- x[, -1]
   } else {
     x <- matrix(0, nrow = length(y), ncol = 1)
     colnames(x) <- 'null'
