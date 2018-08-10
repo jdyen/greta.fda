@@ -95,16 +95,15 @@ fda_response.formula <- function (formula, data,
   
   # use correct var_names when random is missing
   if (length(random)) {
-    
     # check there are no interactions in the random terms
     if (length(grep('\\*', full_var_list[random]))) {
       stop('cannot include interactions in random effects; use separate (1 | random) 
            terms for each random variable', call. = FALSE)
     }
-    
+    fixed_vars <- var_names[-random]
     random_vars <- var_names[random]
-    
   } else {
+    fixed_vars <- var_names
     random_vars <- NULL
   }
 
