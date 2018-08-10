@@ -90,13 +90,21 @@ fda_response.formula <- function (formula, data,
   terms <- terms(formula)
   random <- (grep("\\|", attributes(terms)$term.labels))
   var_names <- all.vars(delete.response(terms))
+  full_var_list <- colnames(attributes(terms)$factors)
+  full_var_list_fixed <- full_var_list[-grep("\\|", full_var_list)]
   
   # use correct var_names when random is missing
   if (length(random)) {
-    fixed_vars <- var_names[-random]
+    
+    # check there are no interactions in the random terms
+    if (length(grep('\\*', full_var_list[random]))) {
+      stop('cannot include interactions in random effects; use separate (1 | random) 
+           terms for each random variable', call. = FALSE)
+    }
+    
     random_vars <- var_names[random]
+    
   } else {
-    fixed_vars <- var_names
     random_vars <- NULL
   }
 
@@ -112,7 +120,7 @@ fda_response.formula <- function (formula, data,
   
   # create model matrix
   if (length(fixed_vars)) {
-    x <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(fixed_vars, collapse = " + "))), data = x_tmp)
+    x <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(full_var_list_fixed, collapse = " + "))), data = x_tmp)
   } else {
     x <- matrix(0, nrow = length(y), ncol = 1)
     colnames(x) <- 'null'
