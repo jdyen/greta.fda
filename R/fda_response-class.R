@@ -397,7 +397,7 @@ build_fda_response_matrix <- function (y, x, z,
     for (rand in seq_len(nt)) {
       gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
                                      sd = do.call('rbind', replicate(ngroup[rand],
-                                                                     sigma_gamma[rand, ])))
+                                                                     list(sigma_gamma[rand, ]))))
     }
   }
   
@@ -502,7 +502,8 @@ build_fda_response_flat <- function (y, x, z,
     gamma <- vector('list', length = nt)
     for (rand in seq_len(nt)) {
       gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
-                                     sd = do.call('rbind', replicate(ngroup[rand], sigma_gamma[rand, ])))
+                                     sd = do.call('rbind', replicate(ngroup[rand],
+                                                                     list(sigma_gamma[rand, ]))))
     }
   }
 
