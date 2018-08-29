@@ -91,7 +91,11 @@ fda_response.formula <- function (formula, data,
   random <- (grep("\\|", attributes(terms)$term.labels))
   var_names <- all.vars(delete.response(terms))
   full_var_list <- colnames(attributes(terms)$factors)
-  full_var_list_fixed <- full_var_list[-grep("\\|", full_var_list)]
+  if (length(random)) {
+    full_var_list_fixed <- full_var_list[-grep("\\|", full_var_list)]
+  } else {
+    full_var_list_fixed <- full_var_list
+  }
   
   # use correct var_names when random is missing
   if (length(random)) {
