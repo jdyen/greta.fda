@@ -397,25 +397,35 @@ build_fda_response_matrix <- function (y, x, z,
   beta <- greta::normal(mean = prior_set$beta_mean, sd = prior_set$beta_sd, dim = c(nk, np))
   
   if (!is.null(z)) {
-    gamma <- vector('list', length = nt)
-    for (rand in seq_len(nt)) {
-      gamma[[rand]] <- do.call('cbind',
-                               lapply(seq_len(ngroup[rand]),
-                                      function(x) greta::normal(mean = 0.0, sd = sigma_gamma[rand, ])))
+    gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
+    group_ind <- c(0, cumsum(ngroup))
+    for (i in seq_len(nt)) {
+      for (j in seq_len(ngroup[i])) {
+        gamma[(group_ind[i] + j), ]
+      }
+    }
+    # gamma <- vector('list', length = nt)
+    # for (rand in seq_len(nt)) {
+    #   gamma[[rand]] <- do.call('cbind',
+    #                            lapply(seq_len(ngroup[rand]),
+    #                                   function(x) greta::normal(mean = 0.0, sd = sigma_gamma[rand, ])))
       # gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
       #                                sd = do.call('rbind', replicate(ngroup[rand],
       #                                                                list(sigma_gamma[rand, ]))))
-    }
+    # }
   }
   print(gamma)
   
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
-  # if (!is.null(z)) {
-  #   for (rand in seq_len(nt)) {
+  if (!is.null(z)) {
+    for (i in seq_len(nt)) {
+      mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
+    }
+    #   for (rand in seq_len(nt)) {
   #     mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
   #   }
-  # }
+  }
   
   # add error structure
   if (errors == 'iid') {
