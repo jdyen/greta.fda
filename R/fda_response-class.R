@@ -401,30 +401,18 @@ build_fda_response_matrix <- function (y, x, z,
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
       for (j in seq_len(ngroup[i])) {
-        gamma[(group_ind[i] + j), ]
+        gamma[(group_ind[i] + j), ] <- greta::normal(mean = 0.0,
+                                                     sd = sigma_gamma[i, ])
       }
     }
-    # gamma <- vector('list', length = nt)
-    # for (rand in seq_len(nt)) {
-    #   gamma[[rand]] <- do.call('cbind',
-    #                            lapply(seq_len(ngroup[rand]),
-    #                                   function(x) greta::normal(mean = 0.0, sd = sigma_gamma[rand, ])))
-      # gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
-      #                                sd = do.call('rbind', replicate(ngroup[rand],
-      #                                                                list(sigma_gamma[rand, ]))))
-    # }
   }
-  print(gamma)
-  
+
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
       mu <- mu + (gamma[(group_ind[i] + z[, i]), ] %*% spline_basis)
     }
-    #   for (rand in seq_len(nt)) {
-  #     mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
-  #   }
   }
   
   # add error structure
@@ -445,7 +433,6 @@ build_fda_response_matrix <- function (y, x, z,
   gamma_vec <- NULL
   if (!is.null(z)) {
     gamma_vec <- c(gamma)
-    # gamma_vec <- do.call('c', gamma)
   }
 
   # return model
@@ -522,18 +509,10 @@ build_fda_response_flat <- function (y, x, z,
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
       for (j in seq_len(ngroup[i])) {
-        gamma[(group_ind[i] + j), ]
+        gamma[(group_ind[i] + j), ] <- greta::normal(mean = 0.0,
+                                                     sd = sigma_gamma[i, ])
       }
     }
-    # gamma <- vector('list', length = nt)
-    # for (rand in seq_len(nt)) {
-    #   gamma[[rand]] <- do.call('rbind',
-    #                            lapply(seq_len(ngroup[rand]), 
-    #                                   function(x) greta::normal(mean = 0.0, sd = sigma_gamma[rand, ])))
-      # gamma[[rand]] <- greta::normal(mean = greta::zeros(dim = c(ngroup[rand], np)),
-      #                                sd = do.call('rbind', replicate(ngroup[rand],
-      #                                                                list(sigma_gamma[rand, ]))))
-    # }
   }
 
   # define linear predictor
@@ -542,16 +521,12 @@ build_fda_response_flat <- function (y, x, z,
     for (i in seq_len(nt)) {
       mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
     }
-  #   for (rand in seq_len(nt)) {
-  #     mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
-  #   }
   }
   
   # flatten gamma list (if used)
   gamma_vec <- NULL
   if (!is.null(z)) {
     gamma_vec <- c(gamma)
-    # gamma_vec <- do.call('c', gamma)
   }
   
   # return model
