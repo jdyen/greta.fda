@@ -444,7 +444,8 @@ build_fda_response_matrix <- function (y, x, z,
   # flatten gamma list (if used)
   gamma_vec <- NULL
   if (!is.null(z)) {
-    gamma_vec <- do.call('c', gamma)
+    gamma_vec <- c(gamma)
+    # gamma_vec <- do.call('c', gamma)
   }
 
   # return model
@@ -549,7 +550,8 @@ build_fda_response_flat <- function (y, x, z,
   # flatten gamma list (if used)
   gamma_vec <- NULL
   if (!is.null(z)) {
-    gamma_vec <- do.call('c', gamma)
+    gamma_vec <- c(gamma)
+    # gamma_vec <- do.call('c', gamma)
   }
   
   # return model
