@@ -400,10 +400,10 @@ build_fda_response_matrix <- function (y, x, z,
     gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
-      for (j in seq_len(ngroup[i])) {
-        gamma[(group_ind[i] + j), ] <- greta::normal(mean = 0.0,
-                                                     sd = sigma_gamma[i, ])
-      }
+        gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <-
+          do.call('rbind', lapply(seq_len(ngroup[i]), 
+                                  greta::normal(mean = 0.0,
+                                                sd = sigma_gamma[i, ])))
     }
   }
 
