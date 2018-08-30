@@ -400,15 +400,13 @@ build_fda_response_matrix <- function (y, x, z,
     gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
-      gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <-
-        do.call('rbind', lapply(seq_len(ngroup[i]), 
-                                function(x) {
-                                  greta::normal(mean = 0.0,
-                                                sd = sigma_gamma[i, ])
-                                }))
+      tmp <- rep(greta::normal(mean = 0.0, sd = sigma_gamma[i, ]),
+                 times = ngroup[i])
+      dim(tmp) <- c(np, ngroup[i])
+      gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <- t(tmp)
     }
   }
-
+    
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
