@@ -406,11 +406,11 @@ build_fda_response_matrix <- function (y, x, z,
   }
   
   # define linear predictor
-  mu <- sweep((greta:::`%*%.greta_array`(x, greta:::`%*%.greta_array`(beta, spline_basis))),
-               2,
-               t(greta:::`%*%.greta_array`(alpha, spline_basis)),
-               '+')
-#  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
+  # mu <- sweep((greta:::`%*%.greta_array`(x, greta:::`%*%.greta_array`(beta, spline_basis))),
+  #              2,
+  #              t(greta:::`%*%.greta_array`(alpha, spline_basis)),
+  #              '+')
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
@@ -516,9 +516,9 @@ build_fda_response_flat <- function (y, x, z,
   }
 
   # define linear predictor
-  mu <- t(greta:::`%*%.greta_array`(alpha, spline_basis)) + 
-    greta::rowSums(x * t(greta:::`%*%.greta_array`(beta, spline_basis)))
-#  mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
+  # mu <- t(greta:::`%*%.greta_array`(alpha, spline_basis)) + 
+  #   greta::rowSums(x * t(greta:::`%*%.greta_array`(beta, spline_basis)))
+  mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
   if (!is.null(z)) {
     for (rand in seq_len(nt)) {
       mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
