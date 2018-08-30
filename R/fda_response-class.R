@@ -407,6 +407,7 @@ build_fda_response_matrix <- function (y, x, z,
       #                                                                list(sigma_gamma[rand, ]))))
     }
   }
+  print(gamma)
   
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
