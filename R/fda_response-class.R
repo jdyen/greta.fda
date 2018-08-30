@@ -420,7 +420,7 @@ build_fda_response_matrix <- function (y, x, z,
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
-      mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
+      mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * spline_basis)
     }
     #   for (rand in seq_len(nt)) {
   #     mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
@@ -539,7 +539,7 @@ build_fda_response_flat <- function (y, x, z,
   mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
-      mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
+      mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * spline_basis)
     }
   #   for (rand in seq_len(nt)) {
   #     mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
