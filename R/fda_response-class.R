@@ -410,11 +410,11 @@ build_fda_response_matrix <- function (y, x, z,
   
   # define linear predictor
   mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
-  if (!is.null(z)) {
-    for (rand in seq_len(nt)) {
-      mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
-    }
-  }
+  # if (!is.null(z)) {
+  #   for (rand in seq_len(nt)) {
+  #     mu <- mu + (gamma[[rand]][z[, rand], ] %*% spline_basis)
+  #   }
+  # }
   
   # add error structure
   if (errors == 'iid') {
@@ -519,11 +519,11 @@ build_fda_response_flat <- function (y, x, z,
 
   # define linear predictor
   mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
-  if (!is.null(z)) {
-    for (rand in seq_len(nt)) {
-      mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
-    }
-  }
+  # if (!is.null(z)) {
+  #   for (rand in seq_len(nt)) {
+  #     mu <- mu + rowSums(gamma[[rand]][z[, rand], ] * t(spline_basis))
+  #   }
+  # }
   
   # flatten gamma list (if used)
   gamma_vec <- NULL
