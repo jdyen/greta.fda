@@ -36,7 +36,8 @@
 #'                                            alpha_sd = 1,
 #'                                            beta_mean = 0,
 #'                                            beta_sd = 1,
-#'                                            sigma_max = 5))
+#'                                            sigma_mean = 0,
+#'                                            sigma_sd = 5))
 #'                         
 #' \dontrun{                 
 #' # fit a greta model
@@ -69,7 +70,8 @@ fda_response <- function (y, ...) {
 #'                                      alpha_sd = 1,
 #'                                      beta_mean = 0,
 #'                                      beta_sd = 1,
-#'                                      sigma_max = 5))
+#'                                      sigma_mean = 0,
+#'                                      sigma_sd = 5))
 #'                                      
 #' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
 #' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
@@ -170,7 +172,8 @@ fda_response.formula <- function (formula, data,
 #'                                      alpha_sd = 1,
 #'                                      beta_mean = 0,
 #'                                      beta_sd = 1,
-#'                                      sigma_max = 5))
+#'                                      sigma_mean = 0,
+#'                                      sigma_sd = 5))
 #'                                      
 #' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
 #' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
@@ -186,6 +189,11 @@ fda_response.default <- function (y, x, z = NULL,
                                   errors = 'iid', ...) {
   
   # test inputs (dimensions of y, x, z; classes of y, x, z)
+  fixed <- TRUE
+  if (is.null(x)) {
+    fixed <- FALSE
+    x <- matrix(rnorm(2 * nrow(y)), ncol = 2)
+  }
   if (is.null(z)) {
     nrow_z <- nrow(x)
   } else { 
@@ -272,6 +280,7 @@ fda_response.default <- function (y, x, z = NULL,
                                               priors,
                                               errors,
                                               spline_set,
+                                              fixed,
                                               ...)
   }
   if (model_type == 'flat') {
@@ -280,10 +289,13 @@ fda_response.default <- function (y, x, z = NULL,
                                             priors,
                                             errors,
                                             spline_set,
+                                            fixed,
                                             ...)
   }  
   
   # add variable names to fda_response object
+  if (!fixed)
+    colnames(x) <- c("Null1", "Null2")
   fda_response$var_names <- list(x = colnames(x),
                                  z = colnames(z))
   
@@ -345,7 +357,8 @@ build_fda_response_matrix <- function (y, x, z,
                                        bins,
                                        priors,
                                        errors, 
-                                       spline_settings, ...) {
+                                       spline_settings, 
+                                       fixed, ...) {
   
   # pull out index counters
   n <- nrow(y)
@@ -383,13 +396,20 @@ build_fda_response_matrix <- function (y, x, z,
                     alpha_sd = 1.0,
                     beta_mean = 0.0,
                     beta_sd = 1.0,
-                    sigma_max = 5.0)
+                    sigma_mean = 0.0,
+                    sigma_sd = 5.0)
   prior_set[names(priors)] <- priors
-  sigma_main <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = 1)
-  sigma_bins <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = nj)
+  sigma_main <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
+                              dim = 1,
+                              truncation = c(0, Inf))
+  sigma_bins <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
+                              dim = nj,
+                              truncation = c(0, Inf))
   sigma_gamma <- NULL
   if (!is.null(z)) {
-    sigma_gamma <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = c(nt, np))
+    sigma_gamma <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
+                                 dim = c(nt, np),
+                                 truncation = c(0, Inf))
   }
   
   # setup parameters
@@ -408,7 +428,11 @@ build_fda_response_matrix <- function (y, x, z,
   }
     
   # define linear predictor
-  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
+  if (fixed) {
+    mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
+  } else {
+    mu <- t(alpha %*% spline_basis)
+  }
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
       mu <- mu + (gamma[(group_ind[i] + z[, i]), ] %*% spline_basis)
@@ -460,7 +484,8 @@ build_fda_response_flat <- function (y, x, z,
                                      bins,
                                      priors,
                                      errors, 
-                                     spline_settings, ...) {
+                                     spline_settings,
+                                     fixed, ...) {
   
   # pull out index counters
   n <- length(y)
@@ -469,7 +494,7 @@ build_fda_response_flat <- function (y, x, z,
     nt <- ncol(z)
     ngroup <- apply(z, 2, max)
   }
-  
+
   # convert x and y to greta arrays
   x <- greta::as_data(x)
   y <- greta::as_data(y)
@@ -491,13 +516,18 @@ build_fda_response_flat <- function (y, x, z,
                     alpha_sd = 1.0,
                     beta_mean = 0.0,
                     beta_sd = 1.0,
-                    sigma_max = 5.0)
+                    sigma_mean = 0.0,
+                    sigma_sd = 5.0)
   prior_set[names(priors)] <- priors
-  sigma_main <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = 1)
+  sigma_main <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
+                              dim = 1,
+                              truncation = c(0, Inf))
   sigma_bins <- NULL
   sigma_gamma <- NULL
   if (!is.null(z)) {
-    sigma_gamma <- greta::uniform(min = 0.0, max = prior_set$sigma_max, dim = c(nt, np))
+    sigma_gamma <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
+                                 dim = c(nt, np),
+                                 truncation = c(0, Inf))
   }
   
   # setup parameters
@@ -508,15 +538,18 @@ build_fda_response_flat <- function (y, x, z,
     gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
-      for (j in seq_len(ngroup[i])) {
-        gamma[(group_ind[i] + j), ] <- greta::normal(mean = 0.0,
-                                                     sd = sigma_gamma[i, ])
-      }
+      tmp <- rep(greta::normal(mean = 0.0, sd = sigma_gamma[i, ]),
+                 times = ngroup[i])
+      dim(tmp) <- c(np, ngroup[i])
+      gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <- t(tmp)
     }
   }
 
   # define linear predictor
-  mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
+  mu <- t(alpha %*% spline_basis) 
+  if (fixed) {
+    mu <- mu + rowSums(x * t(beta %*% spline_basis))
+  }
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
       mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
