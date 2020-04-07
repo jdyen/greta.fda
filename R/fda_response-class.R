@@ -128,8 +128,8 @@ fda_response.formula <- function (formula, data,
     x <- model.matrix(as.formula(paste0("~", paste(full_var_list_fixed, collapse = " + "))), data = x_tmp)
     x <- x[, -1]
   } else {
-    x <- matrix(0, nrow = 2 * length(y), ncol = 2)
-    colnames(x) <- 'null'
+    x <- matrix(0, nrow = nrow(y), ncol = 2)
+    colnames(x) <- rep('null', 2)
   }
   if (length(random_vars)) {
     z <- model.matrix(as.formula(paste0(" ~ -1 + ", paste(random_vars, collapse = " + "))), data = z_tmp)
@@ -189,11 +189,6 @@ fda_response.default <- function (y, x, z = NULL,
                                   errors = 'iid', ...) {
   
   # test inputs (dimensions of y, x, z; classes of y, x, z)
-  fixed <- TRUE
-  if (is.null(x)) {
-    fixed <- FALSE
-    x <- matrix(rnorm(2 * nrow(y)), ncol = 2)
-  }
   if (is.null(z)) {
     nrow_z <- nrow(x)
   } else { 
@@ -280,7 +275,6 @@ fda_response.default <- function (y, x, z = NULL,
                                               priors,
                                               errors,
                                               spline_set,
-                                              fixed,
                                               ...)
   }
   if (model_type == 'flat') {
@@ -289,13 +283,10 @@ fda_response.default <- function (y, x, z = NULL,
                                             priors,
                                             errors,
                                             spline_set,
-                                            fixed,
                                             ...)
   }  
   
   # add variable names to fda_response object
-  if (!fixed)
-    colnames(x) <- c("Null1", "Null2")
   fda_response$var_names <- list(x = colnames(x),
                                  z = colnames(z))
   
@@ -357,8 +348,7 @@ build_fda_response_matrix <- function (y, x, z,
                                        bins,
                                        priors,
                                        errors, 
-                                       spline_settings, 
-                                       fixed, ...) {
+                                       spline_settings, ...) {
   
   # pull out index counters
   n <- nrow(y)
@@ -428,11 +418,7 @@ build_fda_response_matrix <- function (y, x, z,
   }
     
   # define linear predictor
-  if (fixed) {
-    mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
-  } else {
-    mu <- t(alpha %*% spline_basis)
-  }
+  mu <- sweep((x %*% (beta %*% spline_basis)), 2, t(alpha %*% spline_basis), '+')
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
       mu <- mu + (gamma[(group_ind[i] + z[, i]), ] %*% spline_basis)
@@ -484,8 +470,7 @@ build_fda_response_flat <- function (y, x, z,
                                      bins,
                                      priors,
                                      errors, 
-                                     spline_settings,
-                                     fixed, ...) {
+                                     spline_settings, ...) {
   
   # pull out index counters
   n <- length(y)
@@ -546,10 +531,7 @@ build_fda_response_flat <- function (y, x, z,
   }
 
   # define linear predictor
-  mu <- t(alpha %*% spline_basis) 
-  if (fixed) {
-    mu <- mu + rowSums(x * t(beta %*% spline_basis))
-  }
+  mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))
   if (!is.null(z)) {
     for (i in seq_len(nt)) {
       mu <- mu + rowSums(gamma[(group_ind[i] + z[, i]), ] * t(spline_basis))
