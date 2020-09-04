@@ -28,7 +28,8 @@
 #' fda_x <- fda_predictor(example_fda_data$x_fun,
 #'                        priors = list(mean = 0,
 #'                                      sd = 1,
-#'                                      sigma_max = 5))
+#'                                      sigma_mean = 0,
+#'                                      sigma_sd = 5))
 #'                         
 #' \dontrun{                 
 #' 
@@ -177,14 +178,15 @@ build_fda_predictor_matrix <- function (x,
   spline_basis <- get(spline_settings$basis)(bins,
                                              df = np,
                                              degree = spline_settings$degree,
-                                             intercept = FALSE,
+                                             intercept = TRUE,
                                              Boundary.knots = boundary_knots)
   spline_basis <- greta::as_data(spline_basis)
 
   # setup priors
   prior_set <- list(mean = 0.0,
                     sd = 1.0,
-                    sigma_max = 5.0)
+                    sigma_mean = 0.0,
+                    sigma_sd = 5.0)
   prior_set[names(priors)] <- priors
 
   # setup parameters
@@ -221,14 +223,15 @@ build_fda_response_flat <- function (x,
   spline_basis <- get(spline_settings$basis)(bins,
                                              df = np,
                                              degree = spline_settings$degree,
-                                             intercept = FALSE,
+                                             intercept = TRUE,
                                              Boundary.knots = boundary_knots)
   spline_basis <- greta::as_data(spline_basis)
 
   # setup priors
   prior_set <- list(mean = 0.0,
                     sd = 1.0,
-                    sigma_max = 5.0)
+                    sigma_mean = 0.0,
+                    sigma_sd = 5.0)
   prior_set[names(priors)] <- priors
 
   # setup parameters
