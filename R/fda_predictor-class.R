@@ -192,14 +192,27 @@ build_fda_predictor_matrix <- function (x,
 
   # setup parameters
   aux1_local <- greta::normal(0, 1, dim = np)
-  aux2_local <- greta::inverse_gamma(0.5 * nu_local, 0.5 * nu_local, dim = np)
+  aux2_local <- greta::inverse_gamma(
+    0.5 * prior_set$nu_local,
+    0.5 * prior_set$nu_local,
+    dim = np
+  )
   aux1_global <- greta::normal(0, 1, dim = 1)
-  aux2_global <- greta::inverse_gamma(0.5 * nu_global, 0.5 * nu_global, dim = 1)
-  caux <- greta::inverse_gamma(0.5 * slab_df, 0.5 * slab_df, dim = 1)
+  aux2_global <- greta::inverse_gamma(
+    0.5 * prior_set$nu_global,
+    0.5 * prior_set$nu_global,
+    dim = 1
+  )
+  caux <- greta::inverse_gamma(
+    0.5 * prior_set$slab_df,
+    0.5 * prior_set$slab_df,
+    dim = 1
+  )
   lambda <- aux1_local * sqrt(aux2_local)
   tau <- aux1_global * sqrt(aux2_global) * scale_global
   cterm <- slab_scale * sqrt(caux)
-  lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
+  lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / 
+                         (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
   z <- greta::normal(0, 1, dim = np)
   beta <- z * lambda_tilde * tau
 
