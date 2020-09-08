@@ -187,7 +187,8 @@ build_fda_predictor_matrix <- function (x,
   prior_set <- list(nu_local = 2,
                     nu_global = 2,
                     slab_df = 2,
-                    scale_global = 2)
+                    scale_global = 2,
+                    slab_scale = 2)
   prior_set[names(priors)] <- priors
 
   # setup parameters
@@ -209,8 +210,8 @@ build_fda_predictor_matrix <- function (x,
     dim = 1
   )
   lambda <- aux1_local * sqrt(aux2_local)
-  tau <- aux1_global * sqrt(aux2_global) * scale_global
-  cterm <- slab_scale * sqrt(caux)
+  tau <- aux1_global * sqrt(aux2_global) * prior_set$scale_global
+  cterm <- prior_set$slab_scale * sqrt(caux)
   lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / 
                          (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
   z <- greta::normal(0, 1, dim = np)
@@ -255,7 +256,8 @@ build_fda_response_flat <- function (x,
   prior_set <- list(nu_local = 2,
                     nu_global = 2,
                     slab_df = 2,
-                    scale_global = 2)
+                    scale_global = 2,
+                    slab_scale = 2)
   prior_set[names(priors)] <- priors
 
   # setup parameters
@@ -277,8 +279,8 @@ build_fda_response_flat <- function (x,
     dim = 1
   )
   lambda <- aux1_local * sqrt(aux2_local)
-  tau <- aux1_global * sqrt(aux2_global) * scale_global
-  cterm <- slab_scale * sqrt(caux)
+  tau <- aux1_global * sqrt(aux2_global) * prior_set$scale_global
+  cterm <- prior_set$slab_scale * sqrt(caux)
   lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / 
                          (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
   z <- greta::normal(0, 1, dim = np)
