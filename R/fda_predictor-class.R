@@ -79,7 +79,8 @@ fda_predictor <- function (x,
   # unpack spline settings
   spline_set <- list(basis = "bs",
                      df = 10,
-                     degree = 3)
+                     degree = 3,
+                     intercept = FALSE)
   spline_set[names(spline_settings)] <- spline_settings
   
   # prepare greta_array
@@ -178,20 +179,30 @@ build_fda_predictor_matrix <- function (x,
   spline_basis <- get(spline_settings$basis)(bins,
                                              df = np,
                                              degree = spline_settings$degree,
-                                             intercept = TRUE,
+                                             intercept = spline_settings$intercept,
                                              Boundary.knots = boundary_knots)
   spline_basis <- greta::as_data(spline_basis)
 
   # setup priors
-  prior_set <- list(mean = 0.0,
-                    sd = 1.0,
-                    sigma_mean = 0.0,
-                    sigma_sd = 5.0)
+  prior_set <- list(nu_local = 2,
+                    nu_global = 2,
+                    slab_df = 2,
+                    scale_global = 2)
   prior_set[names(priors)] <- priors
 
   # setup parameters
-  beta <- greta::normal(mean = prior_set$mean, sd = prior_set$sd, dim = c(np, 1))
-  
+  aux1_local <- greta::normal(0, 1, dim = np)
+  aux2_local <- greta::inverse_gamma(0.5 * nu_local, 0.5 * nu_local, dim = np)
+  aux1_global <- greta::normal(0, 1, dim = 1)
+  aux2_global <- greta::inverse_gamma(0.5 * nu_global, 0.5 * nu_global, dim = 1)
+  caux <- greta::inverse_gamma(0.5 * slab_df, 0.5 * slab_df, dim = 1)
+  lambda <- aux1_local * sqrt(aux2_local)
+  tau <- aux1_global * sqrt(aux2_global) * scale_global
+  cterm <- slab_scale * sqrt(caux)
+  lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
+  z <- greta::normal(0, 1, dim = np)
+  beta <- z * lambda_tilde * tau
+
   # define linear predictor
   greta_array <- x %*% (spline_basis %*% beta)
 
@@ -223,19 +234,29 @@ build_fda_response_flat <- function (x,
   spline_basis <- get(spline_settings$basis)(bins,
                                              df = np,
                                              degree = spline_settings$degree,
-                                             intercept = TRUE,
+                                             intercept = spline_settings$intercept,
                                              Boundary.knots = boundary_knots)
   spline_basis <- greta::as_data(spline_basis)
 
   # setup priors
-  prior_set <- list(mean = 0.0,
-                    sd = 1.0,
-                    sigma_mean = 0.0,
-                    sigma_sd = 5.0)
+  prior_set <- list(nu_local = 2,
+                    nu_global = 2,
+                    slab_df = 2,
+                    scale_global = 2)
   prior_set[names(priors)] <- priors
 
   # setup parameters
-  beta <- greta::normal(mean = prior_set$mean, sd = prior_set$sd, dim = c(np, 1))
+  aux1_local <- greta::normal(0, 1, dim = np)
+  aux2_local <- greta::inverse_gamma(0.5 * nu_local, 0.5 * nu_local, dim = np)
+  aux1_global <- greta::normal(0, 1, dim = 1)
+  aux2_global <- greta::inverse_gamma(0.5 * nu_global, 0.5 * nu_global, dim = 1)
+  caux <- greta::inverse_gamma(0.5 * slab_df, 0.5 * slab_df, dim = 1)
+  lambda <- aux1_local * sqrt(aux2_local)
+  tau <- aux1_global * sqrt(aux2_global) * scale_global
+  cterm <- slab_scale * sqrt(caux)
+  lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
+  z <- greta::normal(0, 1, dim = np)
+  beta <- z * lambda_tilde * tau
   
   # define linear predictor
   greta_array <- x * (spline_basis %*% beta)
