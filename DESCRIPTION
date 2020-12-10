@@ -13,9 +13,8 @@ BugReports: https://github.com/jdyen/greta.fda/issues
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 3.0)
+    greta
 Imports:
-    greta,
     splines,    
     stats
 Suggests:

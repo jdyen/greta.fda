@@ -38,3 +38,34 @@ all_equal <- function (..., tolerance = 1e-10) {
   all(out)
   
 }
+
+# define shrinkage prior
+define_shrinkage_prior <- function(priors, np) {
+  
+  # setup parameters
+  aux1_local <- greta::normal(0, 1, dim = np)
+  aux2_local <- greta::inverse_gamma(
+    0.5 * priors$nu_local,
+    0.5 * priors$nu_local,
+    dim = np
+  )
+  aux1_global <- greta::normal(0, 1, dim = 1)
+  aux2_global <- greta::inverse_gamma(
+    0.5 * priors$nu_global,
+    0.5 * priors$nu_global,
+    dim = 1
+  )
+  caux <- greta::inverse_gamma(
+    0.5 * priors$slab_df,
+    0.5 * priors$slab_df,
+    dim = 1
+  )
+  lambda <- aux1_local * sqrt(aux2_local)
+  tau <- aux1_global * sqrt(aux2_global) * priors$scale_global
+  cterm <- priors$slab_scale * sqrt(caux)
+  lambda_tilde <- sqrt((cterm ^ 2 * lambda ^ 2) / 
+                         (cterm ^ 2 + tau ^ 2 * lambda ^ 2))
+  z <- greta::normal(0, 1, dim = np)
+  z * lambda_tilde * tau
+  
+}

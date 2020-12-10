@@ -5,6 +5,12 @@
 #' 
 #' @rdname fda_response
 #' 
+#' @export
+#' 
+#' @import greta
+#' @importFrom splines bs
+#' @importFrom stats terms.formula delete.response as.formula model.matrix
+#' 
 #' @param formula formula describing the model to be fitted, in the format used by \link[lme4]{lmer}
 #' @param data a named list containing the variables in \code{formula}
 #' @param y a \code{matrix} or \code{data.frame} with the response variable (one row per observation)
@@ -12,18 +18,12 @@
 #' @param z a \code{matrix} or \code{data.frame} of random effects variables
 #' @param bins a vector of values at which the response variable is recorded
 #' @param spline_settings a named list of settings to pass to the spline function (see \link[splines]{bs} for details)
-#' @param priors a named list of settings for prior distributions (alpha_mean, alpha_sd, beta_mean, beta_sd, sigma_max)
+#' @param priors a named list of settings for prior distributions (nu_local, nu_global, slab_df, scale_global, slab_scale, sigma_mean, sigma_sd, sigma_gamma)
 #' @param errors a character denoting the type of errors in a matrix model; currently only 'iid' and 'ar1' are implemented
 #' @param object an \code{fda_response} object
 #' @param ... further arguments passed to or from other methods
 #'
 #' @return An object of class \code{fda_response}, which can be used in a \link[greta]{model}
-#' 
-#' @export
-#' 
-#' @import greta
-#' @importFrom splines bs
-#' @importFrom stats terms.formula delete.response as.formula model.matrix
 #' 
 #' @examples
 #' 
@@ -32,13 +32,17 @@
 #' # fit an example model
 #' fda_response <- fda_response(y ~ x1 + x2 + (1 | z1),
 #'                              data = example_fda_data,
-#'                              priors = list(alpha_mean = 0,
-#'                                            alpha_sd = 1,
-#'                                            beta_mean = 0,
-#'                                            beta_sd = 1,
-#'                                            sigma_mean = 0,
-#'                                            sigma_sd = 5))
-#'                         
+#'                              priors = list(
+#'                                nu_local = 2,
+#'                                nu_global = 2,
+#'                                slab_df = 2,
+#'                                scale_global = 2,
+#'                                slab_scale = 2,
+#'                                sigma_mean = 0.0,
+#'                                sigma_sd = 5.0,
+#'                                sigma_gamma = 5.0
+#'                              )))
+#'
 #' \dontrun{                 
 #' # fit a greta model
 #' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
@@ -46,7 +50,6 @@
 #' 
 #' greta_model <- with(fda_response, model(mu, alpha, beta, sigma_main, sigma_response))
 #' }
-
 fda_response <- function (y, ...) {
   
   UseMethod('fda_response')
@@ -57,29 +60,6 @@ fda_response <- function (y, ...) {
 #'
 #' @export
 #' 
-#' @examples
-#'
-#' # create a fda_response object to model a function-valued response variable
-#'   
-#' \dontrun{
-#' 
-#' # fit an example model
-#' mu_fda <- fda_response(y ~ x1 + x2 + (1 | z1),
-#'                        data = example_fda_data,
-#'                        priors = list(alpha_mean = 0,
-#'                                      alpha_sd = 1,
-#'                                      beta_mean = 0,
-#'                                      beta_sd = 1,
-#'                                      sigma_mean = 0,
-#'                                      sigma_sd = 5))
-#'                                      
-#' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
-#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
-#' 
-#' greta_model <- model(mu_fda)
-#' 
-#' }
-
 fda_response.formula <- function (formula, data,
                                   bins = NULL,
                                   spline_settings = list(),
@@ -157,31 +137,6 @@ fda_response.formula <- function (formula, data,
 #'
 #' @export
 #' 
-#' @examples
-#'
-#' # default method to create a fda_response object
-#'   
-#' \dontrun{
-#' 
-#' # fit an example model
-#' y <- example_fda_data$y
-#' xmat <- cbind(example_fda_data$x1, example_fda_data$x2)
-#' xmat <- example_fda_data$z1
-#' mu_fda <- fda_response(y = y, x = xmat, z = zmat,
-#'                        priors = list(alpha_mean = 0,
-#'                                      alpha_sd = 1,
-#'                                      beta_mean = 0,
-#'                                      beta_sd = 1,
-#'                                      sigma_mean = 0,
-#'                                      sigma_sd = 5))
-#'                                      
-#' sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
-#' distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
-#' 
-#' greta_model <- model(mu_fda)
-#' 
-#' }
-
 fda_response.default <- function (y, x, z = NULL,
                                   bins = NULL,
                                   spline_settings = list(),
@@ -382,39 +337,49 @@ build_fda_response_matrix <- function (y, x, z,
   spline_basis <- greta::as_data(t(spline_basis))
 
   # setup priors
-  prior_set <- list(alpha_mean = 0.0,
-                    alpha_sd = 1.0,
-                    beta_mean = 0.0,
-                    beta_sd = 1.0,
+  prior_set <- list(nu_local = 2,
+                    nu_global = 2,
+                    slab_df = 2,
+                    scale_global = 2,
+                    slab_scale = 2,
                     sigma_mean = 0.0,
-                    sigma_sd = 5.0)
+                    sigma_sd = 5.0,
+                    sigma_gamma = 5.0)
   prior_set[names(priors)] <- priors
-  sigma_main <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
-                              dim = 1,
-                              truncation = c(0, Inf))
-  sigma_bins <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
-                              dim = nj,
-                              truncation = c(0, Inf))
+  
+  # define shrinkage priors on alpha and beta
+  alpha <- define_shrinkage_prior(prior_set, np)
+  beta <- do.call(
+    rbind,
+    lapply(
+      seq_len(nk),
+      function(i) define_shrinkage_prior(prior_set, np)
+    )
+  )
+  
+  # overall variance term
+  sigma_main <- prior_set$sigma_mean + prior_set$sigma_sd *
+    greta::normal(0, 1, truncation = c(0, Inf))
+  
+  # slightly more complex priors for random effects:
+  #   exchangeable among groups within levels and bins
   sigma_gamma <- NULL
   if (!is.null(z)) {
-    sigma_gamma <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
-                                 dim = c(nt, np),
-                                 truncation = c(0, Inf))
-  }
-  
-  # setup parameters
-  alpha <- greta::normal(mean = prior_set$alpha_mean, sd = prior_set$alpha_sd, dim = c(1, np))
-  beta <- greta::normal(mean = prior_set$beta_mean, sd = prior_set$beta_sd, dim = c(nk, np))
-  
-  if (!is.null(z)) {
+    
+    # shared standard deviations
+    sigma_gamma <- prior_set$sigma_mean + prior_set$sigma_sd *
+      greta::normal(0, 1, dim = c(nt, np), truncation = c(0, Inf))
+
+    # and actual gammas
     gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
-      tmp <- rep(greta::normal(mean = 0.0, sd = sigma_gamma[i, ]),
+      tmp <- rep(greta::normal(0, 1, dim = np) * sigma_gamma[i, ],
                  times = ngroup[i])
       dim(tmp) <- c(np, ngroup[i])
       gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <- t(tmp)
     }
+    
   }
     
   # define linear predictor
@@ -427,11 +392,11 @@ build_fda_response_matrix <- function (y, x, z,
   
   # add error structure
   if (errors == 'iid') {
-    bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
+    bin_errors <- sigma_bins * greta::normal(0, 1, dim = nj)
   } else {
     if (errors == 'ar1') {
       rho <- greta::uniform(min = 0, max = 1, dim = 1)
-      bin_errors <- greta::normal(mean = rep(0.0, nj), sd = sigma_bins, dim = nj)
+      bin_errors <- sigma_bins * greta::normal(0, 1, dim = nj)
       bin_errors <- c(bin_errors[1], bin_errors[seq_len(nj)[-1]] + rho * bin_errors[seq_len(nj - 1)])
     } else {
       stop("errors must be 'iid' or 'ar1'")
@@ -497,38 +462,53 @@ build_fda_response_flat <- function (y, x, z,
   spline_basis <- greta::as_data(t(spline_basis))
 
   # setup priors
-  prior_set <- list(alpha_mean = 0.0,
-                    alpha_sd = 1.0,
-                    beta_mean = 0.0,
-                    beta_sd = 1.0,
+  prior_set <- list(nu_local = 2,
+                    nu_global = 2,
+                    slab_df = 2,
+                    scale_global = 2,
+                    slab_scale = 2,
                     sigma_mean = 0.0,
-                    sigma_sd = 5.0)
+                    sigma_sd = 5.0,
+                    sigma_gamma = 5.0)
   prior_set[names(priors)] <- priors
-  sigma_main <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
-                              dim = 1,
-                              truncation = c(0, Inf))
-  sigma_bins <- NULL
+  
+  # define shrinkage priors on alpha and beta
+  alpha <- define_shrinkage_prior(prior_set, np)
+  beta <- do.call(
+    rbind,
+    lapply(
+      seq_len(nk),
+      function(i) define_shrinkage_prior(prior_set, np)
+    )
+  )
+  
+  # overall model variance
+  sigma_main <- prior_set$sigma_mean + prior_set$sigma_sd *
+    greta::normal(0, 1, truncation = c(0, Inf))
+
+  # slightly more complex priors for random effects:
+  #   exchangeable among groups within levels and bins
   sigma_gamma <- NULL
   if (!is.null(z)) {
-    sigma_gamma <- greta::normal(mean = prior_set$sigma_mean, sd = prior_set$sigma_sd,
-                                 dim = c(nt, np),
-                                 truncation = c(0, Inf))
-  }
-  
-  # setup parameters
-  alpha <- greta::normal(mean = prior_set$alpha_mean, sd = prior_set$alpha_sd, dim = c(1, np))
-  beta <- greta::normal(mean = prior_set$beta_mean, sd = prior_set$beta_sd, dim = c(nk, np))
-  
-  if (!is.null(z)) {
+    
+    # shared standard deviations
+    sigma_gamma <- prior_set$sigma_mean + prior_set$sigma_sd *
+      greta::normal(0, 1, dim = c(nt, np), truncation = c(0, Inf))
+    
+    # and actual gammas
     gamma <- greta::greta_array(data = 0, dim = c(sum(ngroup), np))
     group_ind <- c(0, cumsum(ngroup))
     for (i in seq_len(nt)) {
-      tmp <- rep(greta::normal(mean = 0.0, sd = sigma_gamma[i, ]),
+      tmp <- rep(greta::normal(0, 1, dim = np) * sigma_gamma[i, ],
                  times = ngroup[i])
       dim(tmp) <- c(np, ngroup[i])
       gamma[(group_ind[i] + 1):(group_ind[i + 1]), ] <- t(tmp)
     }
+    
   }
+  
+  # don't have bin level sigmas in this setup
+  sigma_bins <- NULL
 
   # define linear predictor
   mu <- t(alpha %*% spline_basis) + rowSums(x * t(beta %*% spline_basis))

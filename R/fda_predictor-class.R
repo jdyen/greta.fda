@@ -26,10 +26,13 @@
 #' 
 #' # fit an example model
 #' fda_x <- fda_predictor(example_fda_data$x_fun,
-#'                        priors = list(mean = 0,
-#'                                      sd = 1,
-#'                                      sigma_mean = 0,
-#'                                      sigma_sd = 5))
+#'                              priors = list(
+#'                                nu_local = 2,
+#'                                nu_global = 2,
+#'                                slab_df = 2,
+#'                                scale_global = 2,
+#'                                slab_scale = 2
+#'                              )))
 #'                         
 #' \dontrun{                 
 #' 
@@ -229,10 +232,10 @@ build_fda_predictor_matrix <- function (x,
 }
 
 # internal function: create greta array from flattened input data
-build_fda_response_flat <- function (x,
-                                     bins,
-                                     priors,
-                                     spline_settings, ...) {
+build_fda_predictor_flat <- function (x,
+                                      bins,
+                                      priors,
+                                      spline_settings, ...) {
   
   # pull out index counters
   n <- length(x)
