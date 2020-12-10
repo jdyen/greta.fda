@@ -348,14 +348,14 @@ build_fda_response_matrix <- function (y, x, z,
   prior_set[names(priors)] <- priors
   
   # define shrinkage priors on alpha and beta
-  alpha <- define_shrinkage_prior(prior_set, np)
-  beta <- do.call(
-    rbind,
+  alpha <- t(define_shrinkage_prior(prior_set, np))
+  beta <- t(do.call(
+    cbind,
     lapply(
       seq_len(nk),
       function(i) define_shrinkage_prior(prior_set, np)
     )
-  )
+  ))
   
   # overall variance term
   sigma_main <- prior_set$sigma_mean + prior_set$sigma_sd *
@@ -473,14 +473,14 @@ build_fda_response_flat <- function (y, x, z,
   prior_set[names(priors)] <- priors
   
   # define shrinkage priors on alpha and beta
-  alpha <- define_shrinkage_prior(prior_set, np)
-  beta <- do.call(
-    rbind,
+  alpha <- t(define_shrinkage_prior(prior_set, np))
+  beta <- t(do.call(
+    cbind,
     lapply(
       seq_len(nk),
       function(i) define_shrinkage_prior(prior_set, np)
     )
-  )
+  ))
   
   # overall model variance
   sigma_main <- prior_set$sigma_mean + prior_set$sigma_sd *
