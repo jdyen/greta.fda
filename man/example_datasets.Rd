@@ -4,7 +4,9 @@
 \name{example_fda_data}
 \alias{example_fda_data}
 \title{Example data sets for functional data analysis}
-\format{A list with three elements: response matrix (y), covariates (x1, x2), and a grouping variable (z1)}
+\format{
+A list with three elements: response matrix (y), covariates (x1, x2), and a grouping variable (z1)
+}
 \usage{
 example_fda_data
 }

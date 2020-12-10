@@ -11,11 +11,26 @@
 \usage{
 fda_response(y, ...)
 
-\method{fda_response}{formula}(formula, data, bins = NULL,
-  spline_settings = list(), priors = list(), errors = "iid", ...)
+\method{fda_response}{formula}(
+  formula,
+  data,
+  bins = NULL,
+  spline_settings = list(),
+  priors = list(),
+  errors = "iid",
+  ...
+)
 
-\method{fda_response}{default}(y, x, z = NULL, bins = NULL,
-  spline_settings = list(), priors = list(), errors = "iid", ...)
+\method{fda_response}{default}(
+  y,
+  x,
+  z = NULL,
+  bins = NULL,
+  spline_settings = list(),
+  priors = list(),
+  errors = "iid",
+  ...
+)
 
 is.fda_response(x)
 
@@ -36,7 +51,7 @@ is.fda_response(x)
 
 \item{spline_settings}{a named list of settings to pass to the spline function (see \link[splines]{bs} for details)}
 
-\item{priors}{a named list of settings for prior distributions (alpha_mean, alpha_sd, beta_mean, beta_sd, sigma_max)}
+\item{priors}{a named list of settings for prior distributions (nu_local, nu_global, slab_df, scale_global, slab_scale, sigma_mean, sigma_sd, sigma_gamma)}
 
 \item{errors}{a character denoting the type of errors in a matrix model; currently only 'iid' and 'ar1' are implemented}
 
@@ -60,60 +75,23 @@ library(greta.fda)
 # fit an example model
 fda_response <- fda_response(y ~ x1 + x2 + (1 | z1),
                              data = example_fda_data,
-                             priors = list(alpha_mean = 0,
-                                           alpha_sd = 1,
-                                           beta_mean = 0,
-                                           beta_sd = 1,
-                                           sigma_max = 5))
-                        
+                             priors = list(
+                               nu_local = 2,
+                               nu_global = 2,
+                               slab_df = 2,
+                               scale_global = 2,
+                               slab_scale = 2,
+                               sigma_mean = 0.0,
+                               sigma_sd = 5.0,
+                               sigma_gamma = 5.0
+                             )))
+
 \dontrun{                 
 # fit a greta model
 sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
 distribution(example_fda_data$y) <- normal(fda_response$mu, sd = sigma_response)
 
 greta_model <- with(fda_response, model(mu, alpha, beta, sigma_main, sigma_response))
-}
-
-# create a fda_response object to model a function-valued response variable
-  
-\dontrun{
-
-# fit an example model
-mu_fda <- fda_response(y ~ x1 + x2 + (1 | z1),
-                       data = example_fda_data,
-                       priors = list(alpha_mean = 0,
-                                     alpha_sd = 1,
-                                     beta_mean = 0,
-                                     beta_sd = 1,
-                                     sigma_max = 5))
-                                     
-sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
-distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
-
-greta_model <- model(mu_fda)
-
-}
-
-# default method to create a fda_response object
-  
-\dontrun{
-
-# fit an example model
-y <- example_fda_data$y
-xmat <- cbind(example_fda_data$x1, example_fda_data$x2)
-xmat <- example_fda_data$z1
-mu_fda <- fda_response(y = y, x = xmat, z = zmat,
-                       priors = list(alpha_mean = 0,
-                                     alpha_sd = 1,
-                                     beta_mean = 0,
-                                     beta_sd = 1,
-                                     sigma_max = 5))
-                                     
-sigma_response <- uniform(min = 0.0, max = 5.0, dim = 1)
-distribution(example_fda_data$y) <- normal(mu_fda, sd = sigma_response)
-
-greta_model <- model(mu_fda)
-
 }
 
 # check if an object is a fda_response object

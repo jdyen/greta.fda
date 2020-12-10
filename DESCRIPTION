@@ -1,8 +1,8 @@
 Package: greta.fda
 Type: Package
 Title: Bayesian Functional Data Analysis with greta 
-Version: 0.0.1
-Date: 2018-06-04
+Version: 0.0.0.9001
+Date: 2020-12-10
 Authors@R: as.person(c(
     "Jian Yen <jdl.yen@gmail.com> [aut, cre]" 
   ))
@@ -23,4 +23,4 @@ Suggests:
     covr,
     rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 7.1.1

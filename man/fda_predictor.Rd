@@ -7,8 +7,7 @@
 \alias{summary.fda_predictor}
 \title{A fda_predictor object containing a greta_array for use with function-valued predictor variables}
 \usage{
-fda_predictor(x, bins = NULL, spline_settings = list(), priors = list(),
-  ...)
+fda_predictor(x, bins = NULL, spline_settings = list(), priors = list(), ...)
 
 is.fda_predictor(x)
 
@@ -42,9 +41,13 @@ library(greta.fda)
 
 # fit an example model
 fda_x <- fda_predictor(example_fda_data$x_fun,
-                       priors = list(mean = 0,
-                                     sd = 1,
-                                     sigma_max = 5))
+                             priors = list(
+                               nu_local = 2,
+                               nu_global = 2,
+                               slab_df = 2,
+                               scale_global = 2,
+                               slab_scale = 2
+                             )))
                         
 \dontrun{                 
 
