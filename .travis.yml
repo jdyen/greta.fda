@@ -1,7 +1,6 @@
 sudo: required
 language: r
 warnings_are_errors: false
-dist: trusty
 
 r_packages:
   - reticulate
